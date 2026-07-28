@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
-import { ABILITY_DB, getCritChance, getEvasion, SPRITE_LIBRARY, POTION_COOLDOWN, SCROLL_DB, getExpForLevel } from '../constants';
+import { ABILITY_DB, getCritChance, getEvasion, SPRITE_LIBRARY, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction } from '../constants';
 import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Stick, Wand } from 'lucide-react';
 
 interface Props {
@@ -156,7 +156,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     const stats = calculateTotalStats(character);
     gameState.current.cachedTotalStats = stats; 
 
-    const maxHp = Math.max(10, stats[Attribute.HT] * 15);
+    const maxHp = Math.max(10, getHp(stats[Attribute.HT]));
     gameState.current.playerMaxHp = maxHp;
     gameState.current.playerHp = character.currentHp !== undefined ? character.currentHp : maxHp;
     gameState.current.stage = character.maxStage || 1; 
@@ -1355,7 +1355,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     }
 
     if (used) {
-        const cdReduc = Math.min(0.5, stats[Attribute.DX] * 0.017);
+        const cdReduc = getCooldownReduction(stats[Attribute.DX]);
         state.cooldowns[ability.id] = ability.cooldown * (1 - cdReduc);
         state.playerState = 'ATTACKING';
         state.attackTimer = 300;
@@ -1435,7 +1435,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       // the refill itself is the reward for leveling).
       if (leveledUp) {
           const newStats = calculateTotalStats(updatedChar);
-          const newMaxHp = Math.max(10, newStats[Attribute.HT] * 15);
+          const newMaxHp = Math.max(10, getHp(newStats[Attribute.HT]));
           updatedChar.currentHp = newMaxHp;
       }
       return updatedChar;

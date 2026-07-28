@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Character, ItemSlot, Item, AbilityTree, AbilityType, AbilityStyle, Attribute, ItemType } from '../types';
-import { ABILITY_DB, getExpForLevel } from '../constants';
+import { ABILITY_DB, getExpForLevel, getHp } from '../constants';
 import { calculateTotalStats, generateLoot } from '../services/engine';
 import { Shirt, Sword, Shield, Gem, Backpack, User, Activity, ArrowRight, PlusCircle, Lock, Check, Book, Zap, Ghost, Footprints, Heart, Wind, Flame, Droplets, Crosshair, Skull, Tornado, Plus, Map, Beer, Hammer, Store, FlaskConical, Scroll, MoreVertical, X, Stick, Wand } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
@@ -29,7 +29,7 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
 
     // Optimization: Memoize stats calculation to prevent re-calculation on every render
     const totalStats = useMemo(() => calculateTotalStats(character), [character.attributes, character.equipment, character.abilityLevels]);
-    const maxHp = totalStats.HT * 15;
+    const maxHp = getHp(totalStats.HT);
     
     // Local HP state for visual regeneration to prevent spamming App level save/render
     const [localHp, setLocalHp] = useState(character.currentHp !== undefined ? character.currentHp : maxHp);
@@ -114,7 +114,7 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
         
         // Recalc stats with new equipment to clamp HP correctly
         const newStats = calculateTotalStats(newChar);
-        const newMaxHp = newStats.HT * 15;
+        const newMaxHp = getHp(newStats.HT);
         newChar.currentHp = Math.min(localHp, newMaxHp);
         setLocalHp(newChar.currentHp);
 
@@ -154,7 +154,7 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
         newChar.equipment[slot] = item;
 
         const newStats = calculateTotalStats(newChar);
-        const newMaxHp = newStats.HT * 15;
+        const newMaxHp = getHp(newStats.HT);
         newChar.currentHp = Math.min(localHp, newMaxHp);
         setLocalHp(newChar.currentHp);
 

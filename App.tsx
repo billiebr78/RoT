@@ -5,6 +5,7 @@ import CharacterCreation from './components/CharacterCreation';
 import Hub from './components/Hub';
 import GameLoop from './components/GameLoop';
 import { calculateTotalStats } from './services/engine';
+import { getHp } from './constants';
 import { Sword, Upload, ArrowLeft, Trash2 } from 'lucide-react';
 
 type GameScreen = 'splash' | 'create' | 'hub' | 'game' | 'dead';
@@ -88,7 +89,7 @@ const App: React.FC = () => {
       
       const newChar = { ...character };
       const stats = calculateTotalStats(newChar);
-      const maxHp = stats[Attribute.HT] * 15;
+      const maxHp = getHp(stats[Attribute.HT]);
       
       // Penalty: Revive with 10% HP
       newChar.currentHp = Math.floor(maxHp * 0.1);

@@ -24,8 +24,14 @@ export const getHp = (ht: number) => ht * 15;
 export const getExpForLevel = (level: number): number => Math.floor(20 * Math.pow(level, 2.5));
 export const getCritChance = (dx: number) => Math.min(50, dx * 0.5); // Cap at 50%
 export const getEvasion = (dx: number) => Math.min(40, dx * 0.4); // Cap at 40%
-export const getMagicResist = (int: number) => Math.min(60, int * 0.5);
-export const getCooldownReduction = (dx: number) => Math.min(0.5, dx * 0.017); // Max 50% reduction at ~30 DX
+/**
+ * Cooldown reduction from Dexterity, applied to ability cooldowns.
+ * Cap at 50% (reached at ~30 DX). Cast time uses a SEPARATE, smaller
+ * reduction (DX * 0.01, capped at 50%) because cast times are short
+ * and we don't want high-DX builds to bypass cast-time counterplay
+ * entirely — see handleAbilityUse in GameLoop.tsx.
+ */
+export const getCooldownReduction = (dx: number) => Math.min(0.5, dx * 0.017);
 
 // Item Generation Data
 export const ITEM_PREFIXES: Record<Attribute, string[]> = {
