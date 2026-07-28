@@ -381,11 +381,17 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
         return; 
     }
 
+    // Decrement duration for ALL buffs, then check mechanic-specific expiry.
+    // Previously, buffs with `charges` (Dash) returned early via
+    // `return b.charges > 0` and buffs with `barrierHp` (Aura Shield, Majesty)
+    // returned early via `return false` when barrier broke — neither had
+    // their duration decremented, so an unbroken/unspent buff lasted forever.
     state.activeBuffs = state.activeBuffs.filter(b => {
-        if (b.charges !== undefined && b.type !== BuffType.STAT) return b.charges > 0;
-        if (b.barrierHp !== undefined && b.barrierHp <= 0) return false;
         b.duration -= dt;
-        return b.duration > 0;
+        if (b.duration <= 0) return false;
+        if (b.charges !== undefined && b.charges <= 0) return false;
+        if (b.barrierHp !== undefined && b.barrierHp <= 0) return false;
+        return true;
     });
 
     const totalStats = calculateTotalStats(character, state.activeBuffs);
@@ -834,9 +840,20 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
   const updateUI = () => {
       const state = gameState.current;
-      
-      if (state.activeBuffs.length !== hudStatic.buffs.length) {
-          setHudStatic(prev => ({ ...prev, buffs: [...state.activeBuffs] }));
+
+      // Re-render the buff row whenever the buff SET changes (length) OR
+      // whenever a buff's internal state changes (charges, barrierHp).
+      // The previous check (length-only) meant the Dash charge counter and
+      // the Aura Shield / Majesty barrier HP value froze in the HUD until
+      // another buff entered or left.
+      const buffsSignature = state.activeBuffs
+          .map(b => `${b.id}|${b.charges ?? 0}|${Math.ceil(b.barrierHp ?? 0)}`)
+          .join(';;');
+      const lastSignature = hudStatic.buffs
+          .map(b => `${b.id}|${b.charges ?? 0}|${Math.ceil(b.barrierHp ?? 0)}`)
+          .join(';;');
+      if (buffsSignature !== lastSignature) {
+          setHudStatic(prev => ({ ...prev, buffs: state.activeBuffs.map(b => ({ ...b })) }));
       }
 
       if (playerHpBarRef.current) {
