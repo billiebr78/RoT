@@ -1393,12 +1393,25 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       };
       
       let xpNeeded = getExpForLevel(updatedChar.level);
+      let leveledUp = false;
       while(updatedChar.exp >= xpNeeded) {
           updatedChar.exp -= xpNeeded;
           updatedChar.level++;
           updatedChar.attributePoints = (updatedChar.attributePoints || 0) + 1;
           updatedChar.skillPoints = (updatedChar.skillPoints || 0) + 1;
           xpNeeded = getExpForLevel(updatedChar.level);
+          leveledUp = true;
+      }
+      // QoL: refill HP on level up. The Hub's Tavern offers a gold-cost heal,
+      // but forcing the player to backtrack after every level-up was tedious
+      // — the battle summary even warned "Health not regenerated. Check
+      // inventory!" acknowledging the gap. Refill to the current max HP
+      // (HT doesn't auto-increase on level-up, so maxHp is unchanged, but
+      // the refill itself is the reward for leveling).
+      if (leveledUp) {
+          const newStats = calculateTotalStats(updatedChar);
+          const newMaxHp = Math.max(10, newStats[Attribute.HT] * 15);
+          updatedChar.currentHp = newMaxHp;
       }
       return updatedChar;
   };
@@ -1730,9 +1743,11 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                                 ))}
                             </div>
                         )}
-                        <div className="mt-2 border-t border-medieval-700 pt-2 text-xs text-red-400 text-center">
-                           Health not regenerated. Check inventory!
-                        </div>
+                        {battleSummary.isLevelUp && (
+                            <div className="mt-2 border-t border-medieval-700 pt-2 text-xs text-emerald-400 text-center">
+                               HP restored on level up!
+                            </div>
+                        )}
                     </div>
                     <div className="flex gap-4 relative z-10">
                         <button onClick={handleExit} className="flex-1 py-3 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded flex items-center justify-center gap-2 border border-medieval-500">
