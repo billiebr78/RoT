@@ -984,21 +984,38 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
       if (slot === ItemSlot.USABLE1) state.usable1Cd = cooldown;
       if (slot === ItemSlot.USABLE2) state.usable2Cd = cooldown;
-      
+
+      // Immutable update: previously this block mutated characterRef.current
+      // (which is the same object as the `character` prop) directly via
+      // `delete char.equipment[slot]` and `char.stash.splice(...)`. That
+      // violated React's "props are read-only" contract and would silently
+      // break if App ever passed a fresh character object on re-render.
+      //
+      // Build new equipment/stash objects, then assign a fresh character
+      // object to characterRef.current so the rest of the combat loop sees
+      // the updated state.
       const char = characterRef.current;
-      delete char.equipment[slot];
-      
-      const replacementIdx = char.stash.findIndex(i => i.name === equippedItem.name);
+      const newEquipment = { ...char.equipment };
+      delete newEquipment[slot];
+
+      const newStash = [...char.stash];
+      const replacementIdx = newStash.findIndex(i => i.name === equippedItem.name);
       if (replacementIdx !== -1) {
-          char.equipment[slot] = char.stash[replacementIdx];
-          char.stash.splice(replacementIdx, 1);
+          newEquipment[slot] = newStash[replacementIdx];
+          newStash.splice(replacementIdx, 1);
           addFloatingText(state.playerX, GROUND_Y - 120, "Refilled!", "white");
       }
-      
-      setHudStatic(prev => ({ 
-          ...prev, 
-          equippedUsable1: char.equipment[ItemSlot.USABLE1],
-          equippedUsable2: char.equipment[ItemSlot.USABLE2]
+
+      characterRef.current = {
+          ...char,
+          equipment: newEquipment,
+          stash: newStash,
+      };
+
+      setHudStatic(prev => ({
+          ...prev,
+          equippedUsable1: newEquipment[ItemSlot.USABLE1],
+          equippedUsable2: newEquipment[ItemSlot.USABLE2]
       }));
   };
 
@@ -1379,19 +1396,21 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   };
 
   const calculateExitState = () => {
-      const updatedChar = { ...character };
+      // Start from characterRef.current (the latest in-combat state) rather
+      // than the `character` prop. The prop is frozen for the duration of
+      // combat — handleConsumeItem now reassigns characterRef.current to a
+      // fresh object on every item use, so this reads the post-consumption
+      // equipment/stash directly. This also removes the dead
+      // `activeBuffs.length >= 0 ? ... : undefined` ternary that previously
+      // tried (and failed) to overlay the USABLE1/USABLE2 slots onto the
+      // stale prop copy.
+      const updatedChar = { ...characterRef.current };
       updatedChar.exp += gameState.current.expGained;
       updatedChar.gold += gameState.current.goldGained;
       updatedChar.stash = [...updatedChar.stash, ...gameState.current.lootFound];
       updatedChar.maxStage = gameState.current.stage;
-      updatedChar.currentHp = gameState.current.playerHp; 
-      
-      updatedChar.equipment = {
-          ...updatedChar.equipment,
-          [ItemSlot.USABLE1]: gameState.current.activeBuffs.length >= 0 ? characterRef.current.equipment[ItemSlot.USABLE1] : undefined,
-          [ItemSlot.USABLE2]: gameState.current.activeBuffs.length >= 0 ? characterRef.current.equipment[ItemSlot.USABLE2] : undefined, 
-      };
-      
+      updatedChar.currentHp = gameState.current.playerHp;
+
       let xpNeeded = getExpForLevel(updatedChar.level);
       let leveledUp = false;
       while(updatedChar.exp >= xpNeeded) {
