@@ -230,8 +230,12 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
         if (isEquipped) {
             newChar.equippedAbilities = newChar.equippedAbilities.filter(aid => aid !== id);
         } else {
+            // Cap active abilities at 3 to match the J/K/L hotkeys and the
+            // 3-slot HUD in GameLoop. Previously this was 4, which let the
+            // player equip a 4th active that was completely inaccessible
+            // (no hotkey, no button, no slice).
             if (ability.type === AbilityType.ACTIVE) {
-                if (active < 4) {
+                if (active < 3) {
                     newChar.equippedAbilities = [...newChar.equippedAbilities, id];
                 } else {
                     const firstActiveIndex = newChar.equippedAbilities.findIndex(aid => ABILITY_DB.find(a => a.id === aid)?.type === AbilityType.ACTIVE);
@@ -268,7 +272,7 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
             const ability = ABILITY_DB.find(a => a.id === id);
             if (ability && ability.type === AbilityType.ACTIVE) {
                  const { active } = getEquippedCounts(newChar.equippedAbilities);
-                 if (active < 4) {
+                 if (active < 3) {
                     newChar.equippedAbilities = [...newChar.equippedAbilities, id];
                  }
             }
@@ -570,7 +574,7 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
                 <div>
                     <h3 className="font-serif text-2xl text-medieval-300">Ability Mastery</h3>
                     <div className="flex gap-4 text-xs text-medieval-400 mt-1">
-                        <span className={activeCount >= 4 ? 'text-red-400 font-bold' : 'text-emerald-400'}>Active: {activeCount}/4</span>
+                        <span className={activeCount >= 3 ? 'text-red-400 font-bold' : 'text-emerald-400'}>Active: {activeCount}/3</span>
                         <span className="text-medieval-600">|</span>
                         <span className="text-blue-400">Passives: Innate</span>
                     </div>
