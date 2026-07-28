@@ -1193,28 +1193,25 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
         }
     } else if (ability.effect === 'heal') {
         let statBase = ability.tree === 'Might' ? stats[Attribute.ST] : stats[Attribute.INT];
-        
-        if (ability.name === 'Battle Roar') {
-             const heals = [20, 35, 50];
-             const healVal = heals[Math.min(2, level-1)];
-             state.playerHp = Math.min(state.playerMaxHp, state.playerHp + healVal);
-             addFloatingText(state.playerX, GROUND_Y - 100, `+${healVal}`, "green");
-        } else {
-            let baseMult = ability.tree === 'Might' ? 5 : 8;
-            let scaleMult = ability.scaling?.effect || 0;
-            let finalMult = baseMult + (scaleMult * (level - 1));
-            state.playerHp = Math.min(state.playerMaxHp, state.playerHp + (statBase * finalMult));
-            addFloatingText(state.playerX, GROUND_Y - 100, "Heal!", "green");
-        }
+
+        // Note: Battle Roar used to be handled here, but it has effect='buff' in
+        // the DB, so this branch was unreachable for it. The heal is now applied
+        // inside the buff branch below. This branch only handles pure heals
+        // like "Body to Mind".
+        let baseMult = ability.tree === 'Might' ? 5 : 8;
+        let scaleMult = ability.scaling?.effect || 0;
+        let finalMult = baseMult + (scaleMult * (level - 1));
+        state.playerHp = Math.min(state.playerMaxHp, state.playerHp + (statBase * finalMult));
+        addFloatingText(state.playerX, GROUND_Y - 100, "Heal!", "green");
         addVFX('BUFF', state.playerX, GROUND_Y, "green");
         used = true;
     } else {
         addFloatingText(state.playerX, GROUND_Y - 100, "Buff!", "yellow");
         addVFX('BUFF', state.playerX, GROUND_Y, "yellow");
-        
+
         if (ability.name === 'Dash') {
-            const dashDuration = getScaledValue(1000, ability.scaling?.duration); 
-            const charges = 2 + level; 
+            const dashDuration = getScaledValue(1000, ability.scaling?.duration);
+            const charges = 2 + level;
             state.activeBuffs.push({
                 id: `buff_${Date.now()}`,
                 name: 'Dash',
@@ -1226,21 +1223,35 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
             });
             addFloatingText(state.playerX, GROUND_Y - 120, `Evasion Up (${charges})`, "cyan");
         } else if (ability.name === 'Battle Roar') {
-             const baseDmgBonus = 0.15; 
-             const scaleDmg = 0.15; 
+             // Battle Roar's tooltip says "+15% Dmg/Lvl and Heals." Previously
+             // only the damage buff was applied because the heal code lived in
+             // the unreachable 'heal' branch above. Apply both effects here.
+             const baseDmgBonus = 0.15;
+             const scaleDmg = 0.15;
              const totalDmgBonus = baseDmgBonus + (scaleDmg * (level - 1));
-             
-             const roarDuration = getScaledValue(10000, ability.scaling?.duration); 
+
+             const roarDuration = getScaledValue(10000, ability.scaling?.duration);
 
              state.activeBuffs.push({
                  id: `buff_${Date.now()}`,
                  name: 'Enraged',
                  type: BuffType.STAT,
-                 duration: roarDuration, 
-                 damageBonus: totalDmgBonus, 
+                 duration: roarDuration,
+                 damageBonus: totalDmgBonus,
                  icon: 'Heart'
              });
              addFloatingText(state.playerX, GROUND_Y - 120, "Enraged!", "red");
+
+             // Heal component: 20/35/50 HP at levels 1/2/3.
+             const heals = [20, 35, 50];
+             const healVal = heals[Math.min(heals.length - 1, level - 1)];
+             const prevHp = state.playerHp;
+             state.playerHp = Math.min(state.playerMaxHp, state.playerHp + healVal);
+             const actualHeal = Math.floor(state.playerHp - prevHp);
+             if (actualHeal > 0) {
+                 addFloatingText(state.playerX, GROUND_Y - 140, `+${actualHeal} HP`, "green");
+                 addVFX('BUFF', state.playerX, GROUND_Y, "green");
+             }
         } else if (ability.name === 'Parry') {
              const parryDuration = getScaledValue(1000, ability.scaling?.duration);
              state.activeBuffs.push({
