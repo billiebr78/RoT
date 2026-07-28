@@ -1262,14 +1262,24 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                  icon: 'Ghost'
              });
         } else if (ability.name === 'Majesty') {
+             // Majesty used to push a buff with no mechanical fields at all
+             // (no statBonus, no barrierHp, no damageBonus) — so despite the
+             // "Exponential Armor Buff (Base 15)" tooltip it did literally
+             // nothing. Interpret "armor buff" as a damage-absorbing barrier
+             // that scales exponentially with level: 50 / 100 / 200 at
+             // levels 1 / 2 / 3 (= 50 * 2^(level-1)). The barrier is drawn
+             // in cyan like Aura Shield so the player can see it active.
              const majDuration = getScaledValue(10000, ability.scaling?.duration);
+             const majBarrier = 50 * Math.pow(2, level - 1);
              state.activeBuffs.push({
                  id: `buff_${Date.now()}`,
                  name: 'Majesty',
                  type: BuffType.MECHANIC,
                  duration: majDuration,
+                 barrierHp: majBarrier,
                  icon: 'Shield',
              });
+             addFloatingText(state.playerX, GROUND_Y - 120, `Majesty! +${majBarrier}`, "cyan");
         } else if (ability.name === 'Aura Shield') {
              const shieldBase = 20;
              const scale = ability.scaling?.effect || 10;
