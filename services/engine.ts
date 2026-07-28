@@ -56,11 +56,31 @@ export const calculateTotalStats = (character: Character, activeBuffs: { name: s
 export const calculatePlayerDamage = (character: Character, isMagic: boolean = false, activeBuffs: Buff[] = []): { damage: number; isCrit: boolean } => {
   const stats = calculateTotalStats(character, activeBuffs);
   const mainHand = character.equipment[ItemSlot.MAIN_HAND];
-  
+
   const baseDmg = (mainHand?.damage || 2);
 
+  // Determine damage-scaling attribute from the equipped weapon's type, not
+  // from the caller's `isMagic` argument (which historically was just
+  // `classType === 'Mage'`). This means:
+  //   - A Warrior wielding a Magic staff would scale with INT (previously ST).
+  //   - A Mage wielding a Slash sword would scale with ST (previously INT).
+  //   - The `isMagic` parameter is now an override for abilities that are
+  //     inherently magical regardless of weapon (e.g. a spell cast via an
+  //     off-hand item, or a class-specific skill).
+  //
+  // WeaponType.MAGIC -> INT scaling, everything else -> ST scaling.
+  let useMagicScaling = isMagic;
+  if (mainHand?.weaponType === WeaponType.MAGIC) {
+    useMagicScaling = true;
+  } else if (mainHand?.weaponType === WeaponType.SLASH || mainHand?.weaponType === WeaponType.BLUNT) {
+    // An explicit non-magic weapon overrides the caller's isMagic flag —
+    // a Mage physically swinging a sword shouldn't get INT scaling on the
+    // auto-attack, only on explicitly magical abilities.
+    useMagicScaling = false;
+  }
+
   let multiplier = 1;
-  if (isMagic) {
+  if (useMagicScaling) {
     multiplier = 1 + (stats[Attribute.INT] / 20);
   } else {
     multiplier = 1 + (stats[Attribute.ST] / 20);
@@ -77,7 +97,7 @@ export const calculatePlayerDamage = (character: Character, isMagic: boolean = f
 
   // Crit Check
   let critChance = getCritChance(stats[Attribute.DX]);
-  
+
   // Dynamic Buff Crit Chance (Additive)
   activeBuffs.forEach(buff => {
       if (buff.critBonus) {
@@ -88,7 +108,7 @@ export const calculatePlayerDamage = (character: Character, isMagic: boolean = f
   const isCrit = Math.random() * 100 < critChance;
 
   if (isCrit) {
-    damage *= 1.5; 
+    damage *= 1.5;
   }
 
   damage = damage * (0.9 + Math.random() * 0.2);

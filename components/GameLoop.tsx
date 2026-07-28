@@ -1035,6 +1035,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       const weaponRange = isMelee ? 110 : 400;
 
       if (dist <= weaponRange && dist > 0) {
+           // The `isMagic` hint is now secondary — calculatePlayerDamage
+           // primarily derives the scaling attribute from the equipped
+           // weapon's weaponType (MAGIC weapons scale with INT, SLASH/BLUNT
+           // with ST). Passing classType === 'Mage' here is retained as a
+           // hint for the rare case of a Mage with no weapon equipped
+           // (falls back to baseDmg 2 with INT scaling).
            const result = calculatePlayerDamage(character, character.classType === 'Mage', state.activeBuffs);
            
            const hasBackstabPassive = character.unlockedAbilities.includes('tactics_mastery'); 
@@ -1727,7 +1733,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
           <div ref={enemyContainerRef} className="w-48 bg-medieval-900/80 border-2 border-medieval-500 p-1 rounded shadow-lg transition-opacity duration-300">
               <div className="flex justify-between items-end mb-1 px-1">
                   <span className="font-bold text-sm text-red-300">{hudStatic.enemyName}</span>
-                  <span className="text-xs text-red-500">Lvl {character.level}</span>
+                  <span className="text-xs text-red-500">Stage {hudStatic.stage}</span>
               </div>
               <div className="w-full h-3 bg-black rounded border border-medieval-600 relative overflow-hidden">
                   <div ref={enemyHpBarRef} className="h-full bg-gradient-to-r from-purple-700 to-purple-500 transition-all duration-75" style={{width: '100%'}}></div>

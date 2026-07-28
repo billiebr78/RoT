@@ -133,11 +133,17 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
              if (item.type === ItemType.CONSUMABLE) {
                 if (!newChar.equipment[ItemSlot.USABLE1]) slot = ItemSlot.USABLE1;
                 else if (!newChar.equipment[ItemSlot.USABLE2]) slot = ItemSlot.USABLE2;
-                else slot = ItemSlot.USABLE1; 
-             } else if (item.blockChance && item.blockChance > 0) {
-                 if (!newChar.equipment[ItemSlot.OFF_HAND]) slot = ItemSlot.OFF_HAND;
-                 else if (!newChar.equipment[ItemSlot.MAIN_HAND]) slot = ItemSlot.MAIN_HAND;
-                 else slot = ItemSlot.OFF_HAND;
+                else slot = ItemSlot.USABLE1;
+             } else if (item.blockChance && item.blockChance > 0 && !item.damage) {
+                 // Pure shields (blockChance > 0, no damage) must NOT go to
+                 // MAIN_HAND. Previously the fallback "if OFF_HAND occupied
+                 // and MAIN_HAND empty, equip shield to MAIN_HAND" let the
+                 // player end up attacking with a shield (damage = 0, falls
+                 // back to the hardcoded 2 from `mainHand?.damage || 2`).
+                 // Pure shields always target OFF_HAND; if OFF_HAND is full,
+                 // the swap logic below handles the exchange with the existing
+                 // occupant.
+                 slot = ItemSlot.OFF_HAND;
              }
         }
 
