@@ -57,11 +57,11 @@ export const OFFHAND_DB = [
 
 export const WEAPON_TEMPLATES = [
     { name: 'Sword', type: WeaponType.SLASH, damageMod: 1.0, icon: 'Sword' },
-    { name: 'Dagger', type: WeaponType.SLASH, damageMod: 0.8, stats: {[Attribute.DX]: 1}, icon: 'Sword' },
-    { name: 'Mace', type: WeaponType.BLUNT, damageMod: 1.2, icon: 'Hammer' }, // Need Hammer icon fallback
+    { name: 'Dagger', type: WeaponType.SLASH, damageMod: 0.8, stats: {[Attribute.DX]: 1}, icon: 'Sword' }, // lucide has no Dagger; Sword is the closest available
+    { name: 'Mace', type: WeaponType.BLUNT, damageMod: 1.2, icon: 'Hammer' },
     { name: 'Hammer', type: WeaponType.BLUNT, damageMod: 1.3, icon: 'Hammer' },
-    { name: 'Staff', type: WeaponType.MAGIC, damageMod: 1.1, stats: {[Attribute.INT]: 2}, icon: 'Sword' }, // Use sword icon for now or generic
-    { name: 'Wand', type: WeaponType.MAGIC, damageMod: 0.9, stats: {[Attribute.INT]: 1}, icon: 'Sword' },
+    { name: 'Staff', type: WeaponType.MAGIC, damageMod: 1.1, stats: {[Attribute.INT]: 2}, icon: 'Stick' },
+    { name: 'Wand', type: WeaponType.MAGIC, damageMod: 0.9, stats: {[Attribute.INT]: 1}, icon: 'Wand' },
 ];
 
 // Mock Data

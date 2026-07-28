@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Character, ItemSlot, Item, AbilityTree, AbilityType, AbilityStyle, Attribute, ItemType } from '../types';
 import { ABILITY_DB, getExpForLevel } from '../constants';
 import { calculateTotalStats, generateLoot } from '../services/engine';
-import { Shirt, Sword, Shield, Gem, Backpack, User, Activity, ArrowRight, PlusCircle, Lock, Check, Book, Zap, Ghost, Footprints, Heart, Wind, Flame, Droplets, Crosshair, Skull, Tornado, Plus, Map, Beer, Hammer, Store, FlaskConical, Scroll, MoreVertical, X } from 'lucide-react';
+import { Shirt, Sword, Shield, Gem, Backpack, User, Activity, ArrowRight, PlusCircle, Lock, Check, Book, Zap, Ghost, Footprints, Heart, Wind, Flame, Droplets, Crosshair, Skull, Tornado, Plus, Map, Beer, Hammer, Store, FlaskConical, Scroll, MoreVertical, X, Stick, Wand } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 interface Props {
@@ -334,6 +334,9 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
             case 'Flame': return <Flame size={size} className={className} />;
             case 'Droplets': return <Droplets size={size} className={className} />;
             case 'Book': return <Book size={size} className={className} />;
+            case 'Hammer': return <Hammer size={size} className={className} />;
+            case 'Stick': return <Stick size={size} className={className} />;
+            case 'Wand': return <Wand size={size} className={className} />;
             default: return <Zap size={size} className={className} />;
         }
     };
@@ -877,6 +880,8 @@ const SlotIcon: React.FC<{ slot: ItemSlot, item?: Item, onClick: (item: Item, e:
                 item.icon === 'Shield' ? <Shield size={20} className="text-white" /> :
                 item.icon === 'Book' ? <Book size={20} className="text-white" /> :
                 item.icon === 'Hammer' ? <Hammer size={20} className="text-white" /> :
+                item.icon === 'Stick' ? <Stick size={20} className="text-white" /> :
+                item.icon === 'Wand' ? <Wand size={20} className="text-white" /> :
                 item.icon === 'Zap' ? <Zap size={20} className="text-white" /> :
                 <span className={`text-[10px] text-center font-bold leading-tight ${item.rarity === 'mythic' ? 'text-fuchsia-200' : 'text-white'}`}>
                     {item.name.split(' ')[1] || item.name}
