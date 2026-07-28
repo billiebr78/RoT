@@ -896,11 +896,24 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       
       const u1Item = character.equipment[ItemSlot.USABLE1];
       const u2Item = character.equipment[ItemSlot.USABLE2];
-      
+
       const u1Cd = !!u1Item?.name.includes('Potion') ? Math.max(state.usable1Cd, state.potionGlobalCd) : state.usable1Cd;
       const u2Cd = !!u2Item?.name.includes('Potion') ? Math.max(state.usable2Cd, state.potionGlobalCd) : state.usable2Cd;
-      const u1Max = !!u1Item?.name.includes('Potion') ? POTION_COOLDOWN : 10000;
-      const u2Max = !!u2Item?.name.includes('Potion') ? POTION_COOLDOWN : 10000;
+      // The display MAX must match the actual cooldown the player experiences.
+      // For potions: that's the global potion cooldown (10s) since it always
+      //   overrides the shorter 5s slot CD.
+      // For scrolls: that's item.duration (20-45s depending on scroll), since
+      //   handleConsumeItem sets the slot CD = duration for scrolls.
+      // Previously the max was hardcoded at 10000ms for scrolls, so the bar
+      // visually emptied at 10s while the scroll was still on cooldown for
+      // another 10-35s.
+      const getItemMaxCooldown = (item?: Item): number => {
+          if (!item) return 10000;
+          if (item.name.includes('Potion')) return POTION_COOLDOWN;
+          return item.duration || 10000;
+      };
+      const u1Max = getItemMaxCooldown(u1Item);
+      const u2Max = getItemMaxCooldown(u2Item);
 
       updateButtonVisual(cooldownRefs.current['usable1'], u1Cd, u1Max, document.getElementById('btn-u1') || undefined);
       updateButtonVisual(cooldownRefs.current['usable2'], u2Cd, u2Max, document.getElementById('btn-u2') || undefined);
