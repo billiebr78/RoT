@@ -13,6 +13,15 @@ export const CLASS_BONUS: Record<ClassType, Attribute> = {
 
 // Calculate derived stats
 export const getHp = (ht: number) => ht * 15;
+
+/**
+ * XP required to advance FROM the given level TO the next level.
+ * Single source of truth — used by both Hub (progress bar display) and
+ * GameLoop (actual level-up logic). Previously these two had drifted
+ * (Hub used 25 * lvl^2.1, GameLoop used 20 * lvl^2.5) which caused the
+ * progress bar to desync from actual level-ups.
+ */
+export const getExpForLevel = (level: number): number => Math.floor(20 * Math.pow(level, 2.5));
 export const getCritChance = (dx: number) => Math.min(50, dx * 0.5); // Cap at 50%
 export const getEvasion = (dx: number) => Math.min(40, dx * 0.4); // Cap at 40%
 export const getMagicResist = (int: number) => Math.min(60, int * 0.5);

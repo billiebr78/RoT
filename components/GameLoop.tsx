@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
-import { ABILITY_DB, getCritChance, getEvasion, SPRITE_LIBRARY, POTION_COOLDOWN, SCROLL_DB } from '../constants';
+import { ABILITY_DB, getCritChance, getEvasion, SPRITE_LIBRARY, POTION_COOLDOWN, SCROLL_DB, getExpForLevel } from '../constants';
 import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer } from 'lucide-react';
 
 interface Props {
@@ -1308,7 +1308,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
     // Level Up Check
     const currentExp = character.exp + state.expGained;
-    const expNeeded = Math.floor(20 * Math.pow(character.level, 2.5)); // Must match engine formula
+    const expNeeded = getExpForLevel(character.level);
     const isLevelUp = currentExp >= expNeeded;
 
     setBattleSummary({ show: true, exp, gold, drops, isLevelUp });
@@ -1341,13 +1341,13 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
           [ItemSlot.USABLE2]: gameState.current.activeBuffs.length >= 0 ? characterRef.current.equipment[ItemSlot.USABLE2] : undefined, 
       };
       
-      let xpNeeded = Math.floor(20 * Math.pow(updatedChar.level, 2.5));
+      let xpNeeded = getExpForLevel(updatedChar.level);
       while(updatedChar.exp >= xpNeeded) {
           updatedChar.exp -= xpNeeded;
           updatedChar.level++;
           updatedChar.attributePoints = (updatedChar.attributePoints || 0) + 1;
           updatedChar.skillPoints = (updatedChar.skillPoints || 0) + 1;
-          xpNeeded = Math.floor(20 * Math.pow(updatedChar.level, 2.5));
+          xpNeeded = getExpForLevel(updatedChar.level);
       }
       return updatedChar;
   };

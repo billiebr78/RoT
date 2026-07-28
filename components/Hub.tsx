@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Character, ItemSlot, Item, AbilityTree, AbilityType, AbilityStyle, Attribute, ItemType } from '../types';
-import { ABILITY_DB } from '../constants';
+import { ABILITY_DB, getExpForLevel } from '../constants';
 import { calculateTotalStats, generateLoot } from '../services/engine';
 import { Shirt, Sword, Shield, Gem, Backpack, User, Activity, ArrowRight, PlusCircle, Lock, Check, Book, Zap, Ghost, Footprints, Heart, Wind, Flame, Droplets, Crosshair, Skull, Tornado, Plus, Map, Beer, Hammer, Store, FlaskConical, Scroll, MoreVertical, X } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
@@ -298,9 +298,9 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
         }
     };
 
-    const getExpNextLevel = (level: number) => {
-        return Math.floor(25 * Math.pow(level, 2.1));
-    };
+    // Use the shared XP formula from constants so the progress bar matches
+    // the actual level-up logic in GameLoop.
+    const getExpNextLevel = (level: number) => getExpForLevel(level);
 
     const getEquippedCounts = (equippedIds: string[]) => {
         const active = equippedIds.filter(id => ABILITY_DB.find(a => a.id === id)?.type === AbilityType.ACTIVE).length;
