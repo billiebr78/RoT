@@ -2,7 +2,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
-import { ABILITY_DB, getCritChance, getEvasion, SPRITE_LIBRARY, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction } from '../constants';
+import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction } from '../constants';
+import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y } from '../render/canvas';
+import TopHUD from './game/TopHUD';
+import BottomControls from './game/BottomControls';
+import BattleSummary from './game/BattleSummary';
 import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Wand } from 'lucide-react';
 
 interface Props {
@@ -11,9 +15,6 @@ interface Props {
   onDeath: () => void;
 }
 
-const CANVAS_WIDTH = 960;
-const CANVAS_HEIGHT = 540;
-const GROUND_Y = 480;
 const PLAYER_SPEED = 2.5;
 
 type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING';
@@ -44,30 +45,6 @@ interface VisualEffect {
     color: string;
     size: number;
 }
-
-const drawHills = (ctx: CanvasRenderingContext2D, offset: number, groundY: number) => {
-    // Far hills
-    ctx.fillStyle = '#1e1b4b'; // Dark blue/purple
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    for(let x=0; x<=CANVAS_WIDTH; x+=10) {
-        ctx.lineTo(x, groundY - 100 - Math.sin((x + offset * 0.5) * 0.01) * 50);
-    }
-    ctx.lineTo(CANVAS_WIDTH, groundY);
-    ctx.lineTo(0, groundY);
-    ctx.fill();
-
-    // Close hills
-    ctx.fillStyle = '#312e81'; 
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    for(let x=0; x<=CANVAS_WIDTH; x+=10) {
-            ctx.lineTo(x, groundY - 50 - Math.sin((x + offset) * 0.02) * 30);
-    }
-    ctx.lineTo(CANVAS_WIDTH, groundY);
-    ctx.lineTo(0, groundY);
-    ctx.fill();
-};
 
 const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   const playerHpBarRef = useRef<HTMLDivElement>(null);
@@ -362,7 +339,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
         gameState.current.lastTime = time;
 
         update(safeDt);
-        draw();
+        drawGame();
         updateUI(); 
     } else {
         gameState.current.lastTime = time;
@@ -1395,7 +1372,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     setBattleSummary({ show: true, exp, gold, drops, isLevelUp });
     state.isPaused = true;
     state.enemy = null;
-    draw(); 
+    drawGame();
   };
 
   const handleContinueJourney = () => {
@@ -1456,221 +1433,13 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       gameState.current.keys[key] = pressed;
   };
 
-  const drawSprite = (ctx: CanvasRenderingContext2D, spriteKey: string, x: number, y: number, scale: number = 4, facingRight: boolean = true, frame: number = 0, overrideColor?: string) => {
-        const sprite = SPRITE_LIBRARY[spriteKey] || SPRITE_LIBRARY['goblin'];
-        if (!sprite) return;
-        const { rows, palette } = sprite;
-        
-        let animRowIndex = 0; 
-        const state = gameState.current;
-
-        if (spriteKey === character.classType) {
-             if (state.playerState === 'ATTACKING') animRowIndex = 2; 
-             else if (state.playerState === 'MOVING') animRowIndex = 1; 
-             else if (state.playerState === 'DEFENDING' || state.playerState === 'CASTING') animRowIndex = 3; 
-             else animRowIndex = 0; 
-        }
-
-        const spriteWidth = 12; 
-        let frameOffset = 0;
-        
-        if (state.playerState === 'ATTACKING' && spriteKey === character.classType) {
-             const duration = state.attackDuration || 300;
-             const progress = 1 - (state.attackTimer / duration); 
-             if (progress < 0.3) frameOffset = 0; 
-             else if (progress < 0.6) frameOffset = 1; 
-             else frameOffset = 2; 
-        } else if (state.playerState === 'MOVING' || state.enemyAI.state === 'ADVANCE') {
-             frameOffset = (frame % 3);
-        } else {
-             frameOffset = (Math.floor(frame / 10) % 3);
-        }
-
-        const frameHeight = 16; 
-        const yOffset = animRowIndex * frameHeight; 
-
-        ctx.save();
-        ctx.translate(x, y);
-        if (!facingRight) {
-            ctx.scale(-1, 1);
-        }
-        if (animRowIndex === 0) {
-            const bob = Math.sin(frame * 0.2) * 2;
-            ctx.translate(0, bob);
-        }
-
-        for (let r = 0; r < frameHeight; r++) {
-            if (yOffset + r >= rows.length) break;
-            const fullRowStr = rows[yOffset + r];
-            const frameStart = frameOffset * 12;
-            const rowStr = fullRowStr.slice(frameStart, frameStart + 12);
-            for (let c = 0; c < 12; c++) {
-                const char = rowStr[c];
-                const color = overrideColor || palette[char];
-                if (color && color !== 'transparent') {
-                    ctx.fillStyle = color;
-                    const dx = (c - 6) * scale; 
-                    const dy = (r - 16) * scale; 
-                    ctx.fillRect(dx, dy, scale, scale);
-                }
-            }
-        }
-        ctx.restore();
-  };
-
-  const draw = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const state = gameState.current;
-
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    for (let y = 0; y < CANVAS_HEIGHT; y+=4) {
-        const ratio = y / CANVAS_HEIGHT;
-        ctx.fillStyle = ratio < 0.3 ? '#0f172a' : ratio < 0.6 ? '#1e293b' : '#334155';
-        ctx.fillRect(0, y, CANVAS_WIDTH, 4);
-    }
-    drawHills(ctx, state.parallaxOffset, GROUND_Y);
-    ctx.fillStyle = '#27272a';
-    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
-    ctx.fillStyle = '#3f3f46';
-    for(let i=0; i<30; i++) {
-        const rx = (state.animFrame * 2 + i * 50) % CANVAS_WIDTH;
-        ctx.fillRect(rx, GROUND_Y + 4 + (i%3)*4, 8, 4);
-    }
-
-    if (state.enemy && state.enemyX > CANVAS_WIDTH - 50) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(state.animFrame * 0.1))})`;
-        ctx.font = "bold 20px monospace";
-        ctx.fillText("ENEMY ->", CANVAS_WIDTH - 100, GROUND_Y - 20);
-    }
-
-    const playerSprite = character.classType; 
-    let playerColorOverride = undefined;
-    if (state.playerState === 'DEFENDING') playerColorOverride = '#3b82f6'; 
-    if (state.castTimer > 0) playerColorOverride = '#eab308'; 
-
-    drawSprite(ctx, playerSprite, state.playerX, GROUND_Y - 10, 5, true, state.animFrame, playerColorOverride);
-
-    if (state.castTimer > 0) {
-        const castPct = 1 - (state.castTimer / state.castTotalTime);
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(state.playerX - 20, GROUND_Y - 100, 40, 6);
-        ctx.fillStyle = '#eab308';
-        ctx.fillRect(state.playerX - 20, GROUND_Y - 100, 40 * castPct, 6);
-    }
-
-    if (state.playerState === 'DEFENDING') {
-        ctx.strokeStyle = '#60a5fa';
-        ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(state.playerX, GROUND_Y - 40, 30, 0, Math.PI*2); ctx.stroke();
-    }
-    
-    const barrier = state.activeBuffs.find(b => b.barrierHp && b.barrierHp > 0);
-    if (barrier) {
-         ctx.strokeStyle = '#22d3ee'; // Cyan
-         ctx.lineWidth = 2;
-         ctx.setLineDash([5, 3]);
-         ctx.beginPath(); 
-         ctx.arc(state.playerX, GROUND_Y - 40, 38, 0, Math.PI*2); 
-         ctx.stroke();
-         ctx.setLineDash([]);
-    }
-
-    if (state.enemy) {
-        const aiState = state.enemyAI.state;
-        let enemyColor = undefined;
-        if (aiState === 'STUNNED') enemyColor = '#555';
-        if (aiState === 'DEFENDING') enemyColor = '#b91c1c';
-
-        drawSprite(ctx, state.enemy.sprite, state.enemyX, GROUND_Y - 10, state.enemy.isBoss ? 7 : 5, false, state.animFrame, enemyColor);
-
-        if (aiState === 'PREPARE') {
-            ctx.font = "900 40px serif";
-            ctx.fillStyle = "#fbbf24";
-            ctx.fillText("!", state.enemyX - 10, GROUND_Y - 110 + Math.sin(state.animFrame * 0.2) * 5);
-        }
-        if (aiState === 'CASTING') {
-            ctx.font = "900 40px serif";
-            ctx.fillStyle = "#d946ef";
-            ctx.fillText("✦", state.enemyX - 10, GROUND_Y - 110 + Math.sin(state.animFrame * 0.2) * 5);
-        }
-    }
-
-    state.projectiles.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
-    });
-
-    state.vfx.forEach(v => {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = v.life / v.maxLife;
-        
-        if (v.type === 'SLASH') {
-             ctx.strokeStyle = v.color;
-             ctx.lineWidth = 4;
-             ctx.beginPath();
-             ctx.arc(v.x, v.y, v.size, Math.PI, Math.PI * 1.8); 
-             ctx.stroke();
-        } 
-        else if (v.type === 'THRUST') {
-             ctx.strokeStyle = v.color;
-             ctx.lineWidth = 3;
-             ctx.beginPath();
-             ctx.moveTo(v.x, v.y);
-             ctx.lineTo(v.x + v.size, v.y);
-             ctx.stroke();
-        }
-        else if (v.type === 'SMASH') {
-             ctx.fillStyle = v.color;
-             ctx.beginPath();
-             ctx.ellipse(v.x, v.y, v.size / 2, v.size, 0, 0, Math.PI * 2);
-             ctx.fill();
-        }
-        else if (v.type === 'IMPACT') {
-             ctx.fillStyle = v.color;
-             ctx.beginPath();
-             const spikes = 8;
-             for(let i=0; i<spikes*2; i++) {
-                 const r = (i%2 === 0) ? v.size : v.size/2;
-                 const a = (Math.PI * i) / spikes;
-                 ctx.lineTo(v.x + Math.cos(a)*r, v.y + Math.sin(a)*r);
-             }
-             ctx.fill();
-        }
-        else if (v.type === 'SPIN') {
-             ctx.strokeStyle = v.color;
-             ctx.lineWidth = 2;
-             ctx.beginPath();
-             ctx.ellipse(v.x, v.y, v.size, v.size/3, state.animFrame * 0.5, 0, Math.PI * 2);
-             ctx.stroke();
-        }
-        else if (v.type === 'BUFF') {
-             ctx.fillStyle = v.color;
-             for(let i=0; i<3; i++) {
-                 ctx.fillRect(v.x + (Math.random()-0.5)*20, v.y - (20-v.life)*3, 4, 4);
-             }
-        }
-        ctx.restore();
-    });
-
-    state.particles.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life / 20;
-        ctx.fillRect(p.x, p.y, p.size, p.size); 
-        ctx.globalAlpha = 1.0;
-    });
-
-    ctx.font = "bold 16px monospace";
-    ctx.textAlign = "center";
-    state.floatingTexts.forEach(t => {
-        ctx.fillStyle = 'black'; ctx.fillText(t.text, t.x + 2, t.y + 2);
-        ctx.fillStyle = t.color; ctx.fillText(t.text, t.x, t.y);
-    });
-    ctx.textAlign = "left";
+  // Wrapper around the extracted draw module — passes canvas ctx + state + character.
+  const drawGame = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      drawScene(ctx, gameState.current, character);
   };
 
   const activeAbilities = character.equippedAbilities.filter(id => {
@@ -1678,121 +1447,21 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       return a && a.type === AbilityType.ACTIVE;
   });
 
-  const renderIcon = (iconName: string, size: number = 24, className: string = '') => {
-      switch (iconName) {
-          case 'Sword': return <Sword size={size} className={className} />;
-          case 'Shield': return <Shield size={size} className={className} />;
-          case 'Zap': return <Zap size={size} className={className} />;
-          case 'Heart': return <Heart size={size} className={className} />;
-          case 'Skull': return <Skull size={size} className={className} />;
-          case 'Ghost': return <Ghost size={size} className={className} />;
-          case 'Footprints': return <Footprints size={size} className={className} />;
-          case 'Crosshair': return <Crosshair size={size} className={className} />;
-          case 'Hurricane': return <Tornado size={size} className={className} />;
-          case 'Tornado': return <Tornado size={size} className={className} />;
-          case 'Wind': return <Wind size={size} className={className} />;
-          case 'Flame': return <Flame size={size} className={className} />;
-          case 'Droplets': return <Droplets size={size} className={className} />;
-          case 'Book': return <Book size={size} className={className} />;
-          case 'Hammer': return <Hammer size={size} className={className} />;
-          case 'Wand': return <Wand size={size} className={className} />;
-          default: return <Zap size={size} className={className} />;
-      }
-  };
-
   return (
     <div className="fixed inset-0 bg-black flex flex-col overflow-y-auto select-none touch-none">
-      {/* === TOP HUD ===
-          shrink-0 so it always takes its natural height; the canvas flex-1
-          below absorbs the rest. Fluid sizing via clamp() + vmin so the HUD
-          scales gracefully from phone-landscape (~360px tall) up to desktop. */}
-      <div className="shrink-0 px-2 py-1.5 flex justify-between items-start gap-2 z-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
-        {/* Player info (top-left) */}
-        <div className="flex gap-1.5 items-start pointer-events-auto">
-          <button
-            onClick={handleExit}
-            className="shrink-0 bg-red-950/90 hover:bg-red-900 text-red-200 rounded border border-red-800 shadow-lg active:scale-90 transition-transform flex items-center justify-center"
-            style={{ width: 'clamp(32px, 8vmin, 44px)', height: 'clamp(32px, 8vmin, 44px)' }}
-            title="Retreat to Town"
-            aria-label="Retreat to Town"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div
-            className="bg-medieval-900/90 border border-medieval-500 rounded p-1 shadow-lg"
-            style={{ width: 'clamp(140px, 36vmin, 220px)' }}
-          >
-            <div className="flex justify-between items-baseline mb-0.5 px-0.5">
-              <span className="font-bold truncate text-medieval-200" style={{ fontSize: 'clamp(10px, 2.6vmin, 14px)' }}>
-                {character.name}
-              </span>
-              <span className="text-medieval-400" style={{ fontSize: 'clamp(8px, 2vmin, 11px)' }}>
-                L{character.level}
-              </span>
-            </div>
-            <div
-              className="bg-black rounded border border-medieval-600 relative overflow-hidden"
-              style={{ height: 'clamp(7px, 2vmin, 12px)' }}
-            >
-              <div ref={playerHpBarRef} className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-all duration-75" style={{width: '100%'}}></div>
-              <span ref={playerHpTextRef} className="absolute inset-0 flex items-center justify-center font-bold text-white drop-shadow-md" style={{ fontSize: 'clamp(7px, 1.9vmin, 10px)' }}></span>
-            </div>
-            <div className="flex gap-0.5 mt-1 flex-wrap">
-              {hudStatic.buffs.map((buff, i) => (
-                <div
-                  key={i}
-                  className="bg-gray-800 border border-gray-600 rounded flex items-center justify-center relative"
-                  style={{ width: 'clamp(12px, 3vmin, 16px)', height: 'clamp(12px, 3vmin, 16px)' }}
-                  title={buff.name}
-                >
-                  {buff.icon === 'Shield' && <Shield size={9} className="text-cyan-400" />}
-                  {buff.icon === 'Heart' && <Heart size={9} className="text-red-400" />}
-                  {buff.icon === 'Ghost' && <Ghost size={9} className="text-white" />}
-                  {buff.icon === 'Footprints' && <Footprints size={9} className="text-green-400" />}
-                  {buff.icon === 'Scroll' && <Scroll size={9} className="text-yellow-400" />}
-                  {buff.charges && (
-                    <span className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full px-0.5 leading-tight font-bold" style={{ fontSize: '6px' }}>
-                      {buff.charges}
-                    </span>
-                  )}
-                  {buff.barrierHp !== undefined && (
-                    <span className="absolute -bottom-1 -right-1 bg-cyan-600 rounded-full px-0.5 leading-tight font-bold" style={{ fontSize: '6px' }}>
-                      {Math.ceil(buff.barrierHp)}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <TopHUD
+        character={character}
+        stage={hudStatic.stage}
+        enemyName={hudStatic.enemyName}
+        enemyMaxHp={hudStatic.enemyMaxHp}
+        buffs={hudStatic.buffs}
+        playerHpBarRef={playerHpBarRef}
+        playerHpTextRef={playerHpTextRef}
+        enemyHpBarRef={enemyHpBarRef}
+        enemyContainerRef={enemyContainerRef}
+        onExit={handleExit}
+      />
 
-        {/* Enemy info (top-right) */}
-        <div
-          ref={enemyContainerRef}
-          className="bg-medieval-900/90 border border-medieval-500 rounded p-1 shadow-lg transition-opacity duration-300 pointer-events-auto"
-          style={{ width: 'clamp(140px, 36vmin, 220px)' }}
-        >
-          <div className="flex justify-between items-baseline mb-0.5 px-0.5">
-            <span className="font-bold truncate text-red-300" style={{ fontSize: 'clamp(10px, 2.6vmin, 14px)' }}>
-              {hudStatic.enemyName}
-            </span>
-            <span className="text-red-500" style={{ fontSize: 'clamp(8px, 2vmin, 11px)' }}>
-              S{hudStatic.stage}
-            </span>
-          </div>
-          <div
-            className="bg-black rounded border border-medieval-600 relative overflow-hidden"
-            style={{ height: 'clamp(7px, 2vmin, 12px)' }}
-          >
-            <div ref={enemyHpBarRef} className="h-full bg-gradient-to-r from-purple-700 to-purple-500 transition-all duration-75" style={{width: '100%'}}></div>
-          </div>
-        </div>
-      </div>
-
-      {/* === CANVAS ===
-          flex-1 + min-h-0 lets it shrink within the flex column. The canvas
-          itself uses max-w-full/max-h-full + aspectRatio so it scales to fit
-          the available area while preserving the internal 16:9 resolution. */}
       <div className="flex-1 flex items-center justify-center min-h-[280px] relative overflow-hidden">
         <canvas
           ref={canvasRef}
@@ -1805,209 +1474,24 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
             objectFit: 'contain',
           }}
         />
-
-        {/* Battle summary overlay - covers the canvas area only */}
-        {battleSummary && (
-          <div className="absolute inset-0 bg-black/85 flex items-center justify-center z-50 p-3 animate-in fade-in duration-300">
-            <div
-              className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl text-center relative overflow-hidden"
-              style={{ width: 'min(92%, 380px)', padding: 'clamp(16px, 4vmin, 32px)' }}
-            >
-              {battleSummary.isLevelUp && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="font-black text-yellow-400 animate-ping opacity-50" style={{ fontSize: 'clamp(22px, 5.5vmin, 34px)' }}>
-                    LEVEL UP!
-                  </div>
-                </div>
-              )}
-              <Trophy className="text-yellow-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />
-              <h2 className="font-serif text-white mb-2 relative z-10" style={{ fontSize: 'clamp(18px, 4.5vmin, 26px)' }}>
-                Victory!
-              </h2>
-              {battleSummary.isLevelUp && (
-                <div className="text-yellow-300 font-bold mb-3 animate-bounce relative z-10" style={{ fontSize: 'clamp(13px, 3.2vmin, 16px)' }}>
-                  LEVEL UP!
-                </div>
-              )}
-              <div className="space-y-1.5 mb-5 text-left bg-medieval-900 p-3 rounded relative z-10">
-                <div className="flex justify-between" style={{ fontSize: 'clamp(11px, 2.8vmin, 14px)' }}>
-                  <span className="text-medieval-300">Exp</span>
-                  <span className="text-white">+{battleSummary.exp}</span>
-                </div>
-                <div className="flex justify-between" style={{ fontSize: 'clamp(11px, 2.8vmin, 14px)' }}>
-                  <span className="text-medieval-300">Gold</span>
-                  <span className="text-yellow-400">+{battleSummary.gold}</span>
-                </div>
-                {battleSummary.drops.length > 0 && (
-                  <div className="mt-2 border-t border-medieval-700 pt-2">
-                    <span className="text-medieval-400 block mb-1" style={{ fontSize: 'clamp(9px, 2.3vmin, 11px)' }}>Loot:</span>
-                    {battleSummary.drops.map((d, i) => (
-                      <div key={i} className={`font-bold ${d.rarity === 'mythic' ? 'text-fuchsia-400' : d.rarity === 'legendary' ? 'text-orange-400' : 'text-white'}`} style={{ fontSize: 'clamp(11px, 2.8vmin, 14px)' }}>
-                        {d.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {battleSummary.isLevelUp && (
-                  <div className="mt-2 border-t border-medieval-700 pt-2 text-emerald-400 text-center" style={{ fontSize: 'clamp(9px, 2.3vmin, 11px)' }}>
-                    HP restored on level up!
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2 relative z-10">
-                <button
-                  onClick={handleExit}
-                  className="flex-1 py-2 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-medieval-500 active:scale-95 transition-transform"
-                  style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
-                >
-                  <Map size={16} /> Town
-                </button>
-                <button
-                  onClick={handleContinueJourney}
-                  className="flex-1 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-emerald-600 active:scale-95 transition-transform"
-                  style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
-                >
-                  Next <ChevronsRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <BattleSummary
+          summary={battleSummary}
+          onExit={handleExit}
+          onContinue={handleContinueJourney}
+        />
       </div>
 
-      {/* === BOTTOM CONTROLS ===
-          shrink-0 so it always takes its natural height. Buttons sized with
-          clamp() to be tap-friendly on phones (44px minimum) without being
-          huge on desktop. Hotkey badges hidden on touch devices. */}
-      <div className="shrink-0 px-2 py-1.5 flex justify-between items-end gap-2 z-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-        {/* Movement (bottom-left) */}
-        <div className="flex gap-2">
-          <button
-            onPointerDown={(e) => { e.preventDefault(); setKey('ArrowLeft', true); }}
-            onPointerUp={() => setKey('ArrowLeft', false)}
-            onPointerLeave={() => setKey('ArrowLeft', false)}
-            onPointerCancel={() => setKey('ArrowLeft', false)}
-            className="bg-medieval-700/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-90 transition-transform shadow-lg touch-none"
-            style={{ width: 'clamp(48px, 13vmin, 76px)', height: 'clamp(48px, 13vmin, 76px)' }}
-            aria-label="Move Left"
-          >
-            <ChevronLeft size={32} className="text-medieval-300" />
-          </button>
-          <button
-            onPointerDown={(e) => { e.preventDefault(); setKey('ArrowRight', true); }}
-            onPointerUp={() => setKey('ArrowRight', false)}
-            onPointerLeave={() => setKey('ArrowRight', false)}
-            onPointerCancel={() => setKey('ArrowRight', false)}
-            className="bg-medieval-700/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-90 transition-transform shadow-lg touch-none"
-            style={{ width: 'clamp(48px, 13vmin, 76px)', height: 'clamp(48px, 13vmin, 76px)' }}
-            aria-label="Move Right"
-          >
-            <ChevronRight size={32} className="text-medieval-300" />
-          </button>
-        </div>
-
-        {/* Actions (bottom-right): items, abilities, attack */}
-        <div className="flex gap-2 items-end">
-          {/* Usable items stacked vertically */}
-          <div className="flex flex-col gap-1.5">
-            <button
-              id="btn-u1"
-              onClick={() => handleConsumeItem(ItemSlot.USABLE1)}
-              className={`relative border rounded flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable1 ? 'bg-medieval-600/90 border-medieval-400' : 'bg-gray-800/90 border-gray-600 opacity-50'}`}
-              style={{ width: 'clamp(34px, 9vmin, 44px)', height: 'clamp(34px, 9vmin, 44px)' }}
-              aria-label="Use Item 1"
-            >
-              {hudStatic.equippedUsable1 ? (
-                hudStatic.equippedUsable1.icon === 'FlaskConical' ? <FlaskConical size={18} className="text-red-400" /> : <Scroll size={18} className="text-blue-400" />
-              ) : <HelpCircle size={18} className="text-gray-500" />}
-              <span className="absolute -top-1 -left-1 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '8px', padding: '1px 3px' }}>U</span>
-              <div
-                ref={el => { if(el) cooldownRefs.current['usable1'] = el }}
-                className="absolute bottom-0 left-0 right-0 bg-black/80"
-                style={{ height: '0%', opacity: 0 }}
-              ></div>
-            </button>
-            <button
-              id="btn-u2"
-              onClick={() => handleConsumeItem(ItemSlot.USABLE2)}
-              className={`relative border rounded flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable2 ? 'bg-medieval-600/90 border-medieval-400' : 'bg-gray-800/90 border-gray-600 opacity-50'}`}
-              style={{ width: 'clamp(34px, 9vmin, 44px)', height: 'clamp(34px, 9vmin, 44px)' }}
-              aria-label="Use Item 2"
-            >
-              {hudStatic.equippedUsable2 ? (
-                hudStatic.equippedUsable2.icon === 'FlaskConical' ? <FlaskConical size={18} className="text-red-400" /> : <Scroll size={18} className="text-blue-400" />
-              ) : <HelpCircle size={18} className="text-gray-500" />}
-              <span className="absolute -top-1 -left-1 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '8px', padding: '1px 3px' }}>I</span>
-              <div
-                ref={el => { if(el) cooldownRefs.current['usable2'] = el }}
-                className="absolute bottom-0 left-0 right-0 bg-black/80"
-                style={{ height: '0%', opacity: 0 }}
-              ></div>
-            </button>
-          </div>
-
-          {/* Ability buttons */}
-          <div className="flex gap-1.5">
-            {activeAbilities.slice(0, 3).map((abId, idx) => {
-              const ability = ABILITY_DB.find(a => a.id === abId);
-              if (!ability) return null;
-              return (
-                <button
-                  key={abId}
-                  id={`btn-ability-${abId}`}
-                  onClick={() => handleAbilityUse(abId)}
-                  className="relative bg-medieval-700/90 border-2 border-medieval-400 rounded-lg flex items-center justify-center overflow-hidden active:scale-90 transition-transform touch-none"
-                  style={{ width: 'clamp(42px, 11vmin, 64px)', height: 'clamp(42px, 11vmin, 64px)' }}
-                  aria-label={ability.name}
-                  title={ability.name}
-                >
-                  {renderIcon(ability.icon, 24, 'text-white')}
-                  <span className="absolute top-0.5 right-0.5 text-gray-300 font-bold bg-black/80 rounded" style={{ fontSize: '8px', padding: '1px 3px' }}>
-                    {idx === 0 ? 'J' : idx === 1 ? 'K' : 'L'}
-                  </span>
-                  <div
-                    ref={el => { if(el) cooldownRefs.current[abId] = el }}
-                    className="absolute bottom-0 left-0 right-0 bg-black/80"
-                    style={{ height: '0%', opacity: 0 }}
-                  ></div>
-                </button>
-              );
-            })}
-            {[...Array(Math.max(0, 3 - activeAbilities.length))].map((_, i) => (
-              <div
-                key={i}
-                className="bg-medieval-900/50 border-2 border-medieval-700 rounded-lg flex items-center justify-center border-dashed opacity-30"
-                style={{ width: 'clamp(42px, 11vmin, 64px)', height: 'clamp(42px, 11vmin, 64px)' }}
-              >
-                <Lock size={16} className="text-medieval-500" />
-              </div>
-            ))}
-          </div>
-
-          {/* Attack button */}
-          <button
-            id="btn-attack"
-            onClick={handleManualAttack}
-            className="bg-red-900/90 border-2 border-red-700 rounded-full flex items-center justify-center relative overflow-hidden active:scale-90 transition-transform touch-none"
-            style={{
-              width: 'clamp(58px, 15vmin, 88px)',
-              height: 'clamp(58px, 15vmin, 88px)',
-              boxShadow: '0 0 15px rgba(220,38,38,0.5)'
-            }}
-            aria-label="Attack"
-          >
-            <Sword size={32} className="text-white drop-shadow-lg" />
-            <span className="absolute top-0.5 right-0.5 text-red-200 font-bold bg-black/80 rounded" style={{ fontSize: '8px', padding: '1px 3px' }}>
-              H
-            </span>
-            <div
-              ref={el => { if(el) cooldownRefs.current['auto_attack'] = el }}
-              className="absolute bottom-0 left-0 right-0 bg-black/80 pointer-events-none"
-              style={{ height: '0%', opacity: 0 }}
-            ></div>
-          </button>
-        </div>
-      </div>
+      <BottomControls
+        equippedUsable1={hudStatic.equippedUsable1}
+        equippedUsable2={hudStatic.equippedUsable2}
+        activeAbilities={activeAbilities}
+        cooldownRefs={cooldownRefs}
+        onMoveLeft={(pressed) => setKey('ArrowLeft', pressed)}
+        onMoveRight={(pressed) => setKey('ArrowRight', pressed)}
+        onAttack={handleManualAttack}
+        onAbility={handleAbilityUse}
+        onUseItem={handleConsumeItem}
+      />
 
       {/* Keyboard help text - faint and centered */}
       <div

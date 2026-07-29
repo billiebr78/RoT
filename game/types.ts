@@ -1,0 +1,98 @@
+// Internal game types shared between GameLoop and extracted modules.
+
+export type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING';
+export type PlayerState = 'IDLE' | 'MOVING' | 'ATTACKING' | 'DEFENDING' | 'CASTING';
+
+export interface Projectile {
+    id: number;
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    owner: 'player' | 'enemy';
+    damage: number;
+    isCrit: boolean;
+    color: string;
+    size: number;
+    effectType?: string;
+    life: number;
+}
+
+export interface VisualEffect {
+    id: number;
+    type: 'SLASH' | 'IMPACT' | 'SMASH' | 'SPIN' | 'BUFF' | 'THRUST';
+    x: number;
+    y: number;
+    life: number;
+    maxLife: number;
+    color: string;
+    size: number;
+}
+
+export interface FloatingText {
+    id: number;
+    x: number;
+    y: number;
+    text: string;
+    color: string;
+    life: number;
+}
+
+export interface Particle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    life: number;
+    color: string;
+    size: number;
+}
+
+// The mutable game state object held in a ref inside GameLoop.
+export interface GameState {
+    playerX: number;
+    playerHp: number;
+    playerMaxHp: number;
+    playerState: PlayerState;
+    playerVx: number;
+    attackTimer: number;
+    attackDuration: number;
+
+    castTimer: number;
+    castTotalTime: number;
+    pendingAbilityId: string | null;
+
+    enemy: import('../types').Enemy | null;
+    enemyX: number;
+    enemyVx: number;
+    enemyAI: {
+        state: AIState;
+        timer: number;
+        abilityToCast: import('../types').EnemyAbility | null;
+    };
+
+    impactTimer: number;
+    lastTime: number;
+    keys: Record<string, boolean>;
+    cooldowns: Record<string, number>;
+    usable1Cd: number;
+    usable2Cd: number;
+    potionGlobalCd: number;
+
+    floatingTexts: FloatingText[];
+    particles: Particle[];
+    projectiles: Projectile[];
+    vfx: VisualEffect[];
+    activeBuffs: import('../types').Buff[];
+
+    stage: number;
+    isPaused: boolean;
+    goldGained: number;
+    expGained: number;
+    lootFound: import('../types').Item[];
+    animFrame: number;
+    parallaxOffset: number;
+    currentAttackSpeed: number;
+    cachedTotalStats: Record<import('../types').Attribute, number> | null;
+    enemyAbilityCooldowns: Record<string, number>;
+}
