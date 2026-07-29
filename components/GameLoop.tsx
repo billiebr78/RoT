@@ -652,9 +652,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       
       let finalDmg = p.damage;
 
-      const hasBackstabPassive = character.unlockedAbilities.includes('tactics_mastery'); 
+      const hasBackstabPassive = character.unlockedAbilities.includes('tactics_mastery');
       if (hasBackstabPassive && (state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT')) {
-          finalDmg *= 1.3;
+          // Backstab scales with ability level: +30% / +45% / +60% at L1/L2/L3.
+          const backstabLvl = character.abilityLevels?.['tactics_mastery'] || 1;
+          const backstabMult = 1 + (0.15 + (backstabLvl - 1) * 0.15);
+          finalDmg *= backstabMult;
           addFloatingText(state.enemyX, GROUND_Y - 140, "Backstab!", "red");
       }
 
@@ -1063,9 +1066,11 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
            // (falls back to baseDmg 2 with INT scaling).
            const result = calculatePlayerDamage(character, character.classType === 'Mage', state.activeBuffs);
            
-           const hasBackstabPassive = character.unlockedAbilities.includes('tactics_mastery'); 
+           const hasBackstabPassive = character.unlockedAbilities.includes('tactics_mastery');
            if (hasBackstabPassive && (state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT')) {
-               result.damage *= 1.3;
+               const backstabLvl = character.abilityLevels?.['tactics_mastery'] || 1;
+               const backstabMult = 1 + (0.15 + (backstabLvl - 1) * 0.15);
+               result.damage *= backstabMult;
                addFloatingText(state.playerX + 50, GROUND_Y - 120, "Backstab!", "red");
            }
 
@@ -1205,7 +1210,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
              
              const hasBackstabPassive = character.unlockedAbilities.includes('tactics_mastery');
              if (hasBackstabPassive && (state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT')) {
-                 dmg *= 1.3;
+                 const backstabLvl = character.abilityLevels?.['tactics_mastery'] || 1;
+                 const backstabMult = 1 + (0.15 + (backstabLvl - 1) * 0.15);
+                 dmg *= backstabMult;
                  addFloatingText(state.playerX + 50, GROUND_Y - 120, "Backstab!", "red");
              }
 

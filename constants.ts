@@ -130,7 +130,7 @@ export const ABILITY_DB: Ability[] = [
   { id: 'tactics_ue', name: 'Parry', description: 'Block next hit and counter with Crit.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.TACTICS, cooldown: 72897, castTime: 0, effect: 'parry', scaling: { duration: 1000 }, icon: 'Ghost', requiredLevel: 8, maxLevel: 3 },
 
   // Passive
-  { id: 'tactics_mastery', name: 'Backstab', description: '+30% Dmg vs Stunned/Feared.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.TACTICS, cooldown: 0, stats: {}, icon: 'Sword', requiredLevel: 3, maxLevel: 3 },
+  { id: 'tactics_mastery', name: 'Backstab', description: '+30/45/60% Dmg vs Stunned/Feared.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.TACTICS, cooldown: 0, stats: {}, icon: 'Sword', requiredLevel: 3, maxLevel: 3 },
   { id: 'tactics_crit', name: 'Dagger Mastery', description: 'Increases DX and Luck.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.TACTICS, cooldown: 0, stats: { [Attribute.DX]: 4, [Attribute.LUCK]: 2 }, scaling: { stats: { [Attribute.DX]: 2, [Attribute.LUCK]: 1 } }, icon: 'Zap', requiredLevel: 6, maxLevel: 3 },
 
   // --- MYSTICS (Mage) ---
@@ -142,7 +142,7 @@ export const ABILITY_DB: Ability[] = [
 
   // Defensive
   { id: 'mystic_aura', name: 'Aura Shield', description: 'Creates a protective barrier.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 48596, castTime: 200, effect: 'barrier', scaling: { effect: 20, duration: 5000 }, icon: 'Shield', requiredLevel: 2, maxLevel: 3 },
-  { id: 'mystic_body', name: 'Body to Mind', description: 'Convert Health to Power (Heal).', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 44712, castTime: 1000, effect: 'heal', scaling: { effect: 3 }, icon: 'Heart', requiredLevel: 8, maxLevel: 3 },
+  { id: 'mystic_body', name: 'Body to Mind', description: 'Channel INT to restore Health.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 44712, castTime: 1000, effect: 'heal', scaling: { effect: 3 }, icon: 'Heart', requiredLevel: 8, maxLevel: 3 },
 
   // Passive
   { id: 'mystic_mastery', name: 'Robe Mastery', description: 'Increases Intelligence.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.MYSTICS, cooldown: 0, stats: { [Attribute.INT]: 3 }, scaling: { stats: { [Attribute.INT]: 2 } }, icon: 'Book', requiredLevel: 3, maxLevel: 3 },
