@@ -144,14 +144,6 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     isLevelUp?: boolean;
   } | null>(null);
 
-  // Detect touch devices so we can hide keyboard hotkey hints ([H], [J], etc.)
-  // — they're meaningless on phones and waste space. We keep the layout itself
-  // identical; touch users just don't see the keycap badges.
-  const [isTouchDevice] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  });
-
   const battleSummaryRef = useRef(battleSummary);
   useEffect(() => { battleSummaryRef.current = battleSummary; }, [battleSummary]);
 
@@ -1709,7 +1701,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col overflow-hidden select-none touch-none">
+    <div className="fixed inset-0 bg-black flex flex-col overflow-y-auto select-none touch-none">
       {/* === TOP HUD ===
           shrink-0 so it always takes its natural height; the canvas flex-1
           below absorbs the rest. Fluid sizing via clamp() + vmin so the HUD
@@ -1801,7 +1793,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
           flex-1 + min-h-0 lets it shrink within the flex column. The canvas
           itself uses max-w-full/max-h-full + aspectRatio so it scales to fit
           the available area while preserving the internal 16:9 resolution. */}
-      <div className="flex-1 flex items-center justify-center min-h-0 relative overflow-hidden">
+      <div className="flex-1 flex items-center justify-center min-h-[280px] relative overflow-hidden">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
@@ -1823,17 +1815,17 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
             >
               {battleSummary.isLevelUp && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="font-black text-yellow-400 animate-ping opacity-50" style={{ fontSize: 'clamp(24px, 6vmin, 40px)' }}>
+                  <div className="font-black text-yellow-400 animate-ping opacity-50" style={{ fontSize: 'clamp(22px, 5.5vmin, 34px)' }}>
                     LEVEL UP!
                   </div>
                 </div>
               )}
-              <Trophy className="text-yellow-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(40px, 10vmin, 64px)', height: 'clamp(40px, 10vmin, 64px)' }} />
-              <h2 className="font-serif text-white mb-2 relative z-10" style={{ fontSize: 'clamp(20px, 5vmin, 30px)' }}>
+              <Trophy className="text-yellow-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />
+              <h2 className="font-serif text-white mb-2 relative z-10" style={{ fontSize: 'clamp(18px, 4.5vmin, 26px)' }}>
                 Victory!
               </h2>
               {battleSummary.isLevelUp && (
-                <div className="text-yellow-300 font-bold mb-3 animate-bounce relative z-10" style={{ fontSize: 'clamp(14px, 3.5vmin, 18px)' }}>
+                <div className="text-yellow-300 font-bold mb-3 animate-bounce relative z-10" style={{ fontSize: 'clamp(13px, 3.2vmin, 16px)' }}>
                   LEVEL UP!
                 </div>
               )}
@@ -1928,9 +1920,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
               {hudStatic.equippedUsable1 ? (
                 hudStatic.equippedUsable1.icon === 'FlaskConical' ? <FlaskConical size={18} className="text-red-400" /> : <Scroll size={18} className="text-blue-400" />
               ) : <HelpCircle size={18} className="text-gray-500" />}
-              {!isTouchDevice && (
-                <span className="absolute -top-1 -left-1 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '8px', padding: '1px 3px' }}>U</span>
-              )}
+              <span className="absolute -top-1 -left-1 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '8px', padding: '1px 3px' }}>U</span>
               <div
                 ref={el => { if(el) cooldownRefs.current['usable1'] = el }}
                 className="absolute bottom-0 left-0 right-0 bg-black/80"
@@ -1947,9 +1937,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
               {hudStatic.equippedUsable2 ? (
                 hudStatic.equippedUsable2.icon === 'FlaskConical' ? <FlaskConical size={18} className="text-red-400" /> : <Scroll size={18} className="text-blue-400" />
               ) : <HelpCircle size={18} className="text-gray-500" />}
-              {!isTouchDevice && (
-                <span className="absolute -top-1 -left-1 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '8px', padding: '1px 3px' }}>I</span>
-              )}
+              <span className="absolute -top-1 -left-1 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '8px', padding: '1px 3px' }}>I</span>
               <div
                 ref={el => { if(el) cooldownRefs.current['usable2'] = el }}
                 className="absolute bottom-0 left-0 right-0 bg-black/80"
@@ -1974,11 +1962,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                   title={ability.name}
                 >
                   {renderIcon(ability.icon, 24, 'text-white')}
-                  {!isTouchDevice && (
-                    <span className="absolute top-0.5 right-0.5 text-gray-300 font-bold bg-black/80 rounded" style={{ fontSize: '8px', padding: '1px 3px' }}>
-                      {idx === 0 ? 'J' : idx === 1 ? 'K' : 'L'}
-                    </span>
-                  )}
+                  <span className="absolute top-0.5 right-0.5 text-gray-300 font-bold bg-black/80 rounded" style={{ fontSize: '8px', padding: '1px 3px' }}>
+                    {idx === 0 ? 'J' : idx === 1 ? 'K' : 'L'}
+                  </span>
                   <div
                     ref={el => { if(el) cooldownRefs.current[abId] = el }}
                     className="absolute bottom-0 left-0 right-0 bg-black/80"
@@ -2011,11 +1997,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
             aria-label="Attack"
           >
             <Sword size={32} className="text-white drop-shadow-lg" />
-            {!isTouchDevice && (
-              <span className="absolute top-0.5 right-0.5 text-red-200 font-bold bg-black/80 rounded" style={{ fontSize: '8px', padding: '1px 3px' }}>
-                H
-              </span>
-            )}
+            <span className="absolute top-0.5 right-0.5 text-red-200 font-bold bg-black/80 rounded" style={{ fontSize: '8px', padding: '1px 3px' }}>
+              H
+            </span>
             <div
               ref={el => { if(el) cooldownRefs.current['auto_attack'] = el }}
               className="absolute bottom-0 left-0 right-0 bg-black/80 pointer-events-none"
@@ -2025,15 +2009,13 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
         </div>
       </div>
 
-      {/* Keyboard help text - only on non-touch devices, faint and centered */}
-      {!isTouchDevice && (
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-medieval-500 opacity-20 pointer-events-none whitespace-nowrap"
-          style={{ fontSize: '10px' }}
-        >
-          [A/D] Move • [H] Attack • [J,K,L] Skills • [U,I] Items
-        </div>
-      )}
+      {/* Keyboard help text - faint and centered */}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-medieval-500 opacity-20 pointer-events-none whitespace-nowrap"
+        style={{ fontSize: '10px' }}
+      >
+        [A/D] Move • [H] Attack • [J,K,L] Skills • [U,I] Items
+      </div>
     </div>
   );
 };
