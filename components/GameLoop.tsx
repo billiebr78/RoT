@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
 import { ABILITY_DB, getCritChance, getEvasion, SPRITE_LIBRARY, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction } from '../constants';
-import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Stick, Wand, RotateCw } from 'lucide-react';
+import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Wand, RotateCw } from 'lucide-react';
 
 interface Props {
   character: Character;
@@ -1715,7 +1715,6 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
           case 'Droplets': return <Droplets size={size} className={className} />;
           case 'Book': return <Book size={size} className={className} />;
           case 'Hammer': return <Hammer size={size} className={className} />;
-          case 'Stick': return <Stick size={size} className={className} />;
           case 'Wand': return <Wand size={size} className={className} />;
           default: return <Zap size={size} className={className} />;
       }
