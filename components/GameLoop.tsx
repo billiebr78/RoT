@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
 import { ABILITY_DB, getCritChance, getEvasion, SPRITE_LIBRARY, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction } from '../constants';
-import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Stick, Wand } from 'lucide-react';
+import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Stick, Wand, RotateCw } from 'lucide-react';
 
 interface Props {
   character: Character;
@@ -143,7 +143,27 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     drops: Item[];
     isLevelUp?: boolean;
   } | null>(null);
-  
+
+  // Track device orientation so we can prompt the player to rotate on phones.
+  // The game is designed for landscape; in portrait the canvas would be tiny
+  // and the controls would crowd each other out.
+  const [isPortrait, setIsPortrait] = useState(false);
+  useEffect(() => {
+    const checkOrientation = () => {
+      // Treat as portrait whenever the viewport is taller than it is wide.
+      // This catches both phone-portrait and any narrow desktop window, but
+      // the rotate prompt is only really shown on touch devices (see below).
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
   const battleSummaryRef = useRef(battleSummary);
   useEffect(() => { battleSummaryRef.current = battleSummary; }, [battleSummary]);
 
@@ -1695,209 +1715,248 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   };
 
   return (
-    <div className="w-full h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden select-none touch-none">
-      <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-start pointer-events-none">
-          <div className="flex gap-4 items-start">
-              <button 
-                onClick={handleExit} 
-                className="pointer-events-auto bg-red-950 hover:bg-red-900 text-red-200 p-2 rounded border border-red-800 shadow-lg transition-colors flex items-center justify-center"
+    <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none">
+      {/* Canvas fills the entire viewport; object-contain preserves the 16:9
+          internal resolution (960x540) and centers it. Black letterbox bars
+          appear automatically on ultra-wide or non-16:9 screens, leaving the
+          gameplay area undistorted at any size. */}
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="absolute inset-0 w-full h-full"
+        style={{ imageRendering: 'pixelated', objectFit: 'contain' }}
+      />
+
+      {/* Battle Summary overlay - centered modal */}
+      {battleSummary && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 animate-in fade-in duration-300 p-4">
+          <div className="bg-medieval-800 border-4 border-medieval-500 p-6 sm:p-8 rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md text-center relative overflow-hidden">
+              {battleSummary.isLevelUp && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-3xl sm:text-4xl font-black text-yellow-400 animate-ping opacity-50">LEVEL UP!</div>
+                  </div>
+              )}
+              <Trophy className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-500 mx-auto mb-3 sm:mb-4 relative z-10" />
+              <h2 className="text-2xl sm:text-3xl font-serif text-white mb-2 relative z-10">Victory!</h2>
+              {battleSummary.isLevelUp && <div className="text-yellow-300 font-bold text-base sm:text-lg mb-3 sm:mb-4 animate-bounce">LEVEL UP!</div>}
+              <div className="space-y-2 mb-6 sm:mb-8 text-left bg-medieval-900 p-3 sm:p-4 rounded relative z-10">
+                  <div className="flex justify-between"><span className="text-medieval-300">Exp</span><span className="text-white">+{battleSummary.exp}</span></div>
+                  <div className="flex justify-between"><span className="text-medieval-300">Gold</span><span className="text-yellow-400">+{battleSummary.gold}</span></div>
+                  {battleSummary.drops.length > 0 && (
+                      <div className="mt-2 border-t border-medieval-700 pt-2">
+                          <span className="text-xs text-medieval-400 block mb-1">Loot:</span>
+                          {battleSummary.drops.map((d, i) => (
+                              <div key={i} className={`text-sm font-bold ${d.rarity === 'mythic' ? 'text-fuchsia-400' : d.rarity === 'legendary' ? 'text-orange-400' : 'text-white'}`}>
+                                  {d.name}
+                              </div>
+                          ))}
+                      </div>
+                  )}
+                  {battleSummary.isLevelUp && (
+                      <div className="mt-2 border-t border-medieval-700 pt-2 text-xs text-emerald-400 text-center">
+                         HP restored on level up!
+                      </div>
+                  )}
+              </div>
+              <div className="flex gap-3 sm:gap-4 relative z-10">
+                  <button onClick={handleExit} className="flex-1 py-2 sm:py-3 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded flex items-center justify-center gap-2 border border-medieval-500 text-sm sm:text-base">
+                      <Map size={16} /> Town [J]
+                  </button>
+                  <button onClick={handleContinueJourney} className="flex-1 py-2 sm:py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-2 border border-emerald-600 text-sm sm:text-base">
+                      Next [H] <ChevronsRight size={16} />
+                  </button>
+              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top HUD overlay - absolute positioned, doesn't push canvas */}
+      <div className="absolute top-2 left-2 right-2 z-20 flex justify-between items-start pointer-events-none gap-2">
+          <div className="flex gap-2 sm:gap-4 items-start">
+              <button
+                onClick={handleExit}
+                className="pointer-events-auto bg-red-950 hover:bg-red-900 text-red-200 p-1.5 sm:p-2 rounded border border-red-800 shadow-lg transition-colors flex items-center justify-center"
                 title="Retreat to Town"
               >
-                 <ArrowLeft size={24} />
+                 <ArrowLeft size={20} className="sm:hidden" />
+                 <ArrowLeft size={24} className="hidden sm:block" />
               </button>
-              <div className="w-48 bg-medieval-900/80 border-2 border-medieval-500 p-1 rounded shadow-lg">
+              <div className="w-32 sm:w-48 bg-medieval-900/80 border-2 border-medieval-500 p-1 rounded shadow-lg">
                   <div className="flex justify-between items-end mb-1 px-1">
-                      <span className="font-bold text-sm text-medieval-200">{character.name}</span>
-                      <span className="text-xs text-medieval-400">Lvl {character.level}</span>
+                      <span className="font-bold text-xs sm:text-sm text-medieval-200 truncate max-w-[70%]">{character.name}</span>
+                      <span className="text-[10px] sm:text-xs text-medieval-400">Lvl {character.level}</span>
                   </div>
-                  <div className="w-32 h-2 bg-black rounded border border-medieval-600 relative overflow-hidden">
+                  <div className="w-full sm:w-32 h-2 bg-black rounded border border-medieval-600 relative overflow-hidden">
                       <div ref={playerHpBarRef} className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-all duration-75" style={{width: '100%'}}></div>
-                      <span ref={playerHpTextRef} className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow-md"></span>
+                      <span ref={playerHpTextRef} className="absolute inset-0 flex items-center justify-center text-[7px] sm:text-[8px] font-bold text-white drop-shadow-md"></span>
                   </div>
-                  
-                  <div className="flex gap-1 mt-1 pl-1">
+
+                  <div className="flex gap-0.5 sm:gap-1 mt-1 pl-0.5 sm:pl-1 flex-wrap">
                       {hudStatic.buffs.map((buff, i) => (
-                          <div key={i} className="w-4 h-4 bg-gray-800 border border-gray-600 rounded flex items-center justify-center relative" title={buff.name}>
-                              {buff.icon === 'Shield' && <Shield size={10} className="text-cyan-400" />}
-                              {buff.icon === 'Heart' && <Heart size={10} className="text-red-400" />}
-                              {buff.icon === 'Ghost' && <Ghost size={10} className="text-white" />}
-                              {buff.icon === 'Footprints' && <Footprints size={10} className="text-green-400" />}
-                              {buff.icon === 'Scroll' && <Scroll size={10} className="text-yellow-400" />}
-                              
-                              {buff.charges && <span className="absolute -bottom-1 -right-1 bg-blue-600 text-[6px] rounded-full px-1">{buff.charges}</span>}
-                              {buff.barrierHp !== undefined && <span className="absolute -bottom-1 -right-1 bg-cyan-600 text-[6px] rounded-full px-1">{Math.ceil(buff.barrierHp)}</span>}
+                          <div key={i} className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-800 border border-gray-600 rounded flex items-center justify-center relative" title={buff.name}>
+                              {buff.icon === 'Shield' && <Shield size={9} className="text-cyan-400" />}
+                              {buff.icon === 'Heart' && <Heart size={9} className="text-red-400" />}
+                              {buff.icon === 'Ghost' && <Ghost size={9} className="text-white" />}
+                              {buff.icon === 'Footprints' && <Footprints size={9} className="text-green-400" />}
+                              {buff.icon === 'Scroll' && <Scroll size={9} className="text-yellow-400" />}
+
+                              {buff.charges && <span className="absolute -bottom-1 -right-1 bg-blue-600 text-[6px] rounded-full px-0.5 sm:px-1 leading-tight">{buff.charges}</span>}
+                              {buff.barrierHp !== undefined && <span className="absolute -bottom-1 -right-1 bg-cyan-600 text-[6px] rounded-full px-0.5 sm:px-1 leading-tight">{Math.ceil(buff.barrierHp)}</span>}
                           </div>
                       ))}
                   </div>
               </div>
           </div>
 
-          <div ref={enemyContainerRef} className="w-48 bg-medieval-900/80 border-2 border-medieval-500 p-1 rounded shadow-lg transition-opacity duration-300">
+          <div ref={enemyContainerRef} className="w-32 sm:w-48 bg-medieval-900/80 border-2 border-medieval-500 p-1 rounded shadow-lg transition-opacity duration-300">
               <div className="flex justify-between items-end mb-1 px-1">
-                  <span className="font-bold text-sm text-red-300">{hudStatic.enemyName}</span>
-                  <span className="text-xs text-red-500">Stage {hudStatic.stage}</span>
+                  <span className="font-bold text-xs sm:text-sm text-red-300 truncate max-w-[60%]">{hudStatic.enemyName}</span>
+                  <span className="text-[10px] sm:text-xs text-red-500">Stage {hudStatic.stage}</span>
               </div>
-              <div className="w-full h-3 bg-black rounded border border-medieval-600 relative overflow-hidden">
+              <div className="w-full h-2 sm:h-3 bg-black rounded border border-medieval-600 relative overflow-hidden">
                   <div ref={enemyHpBarRef} className="h-full bg-gradient-to-r from-purple-700 to-purple-500 transition-all duration-75" style={{width: '100%'}}></div>
               </div>
           </div>
       </div>
 
-      <div className="relative border-y-4 border-medieval-600 shadow-2xl w-full bg-gray-900 flex-1 flex items-center justify-center overflow-hidden">
-        <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="block cursor-crosshair w-full h-full object-contain image-pixelated" style={{imageRendering: 'pixelated'}} />
-        
-        {battleSummary && (
-             <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 animate-in fade-in duration-300">
-                <div className="bg-medieval-800 border-4 border-medieval-500 p-8 rounded-lg shadow-2xl w-96 text-center relative overflow-hidden">
-                    {battleSummary.isLevelUp && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="text-4xl font-black text-yellow-400 animate-ping opacity-50">LEVEL UP!</div>
-                        </div>
-                    )}
-                    <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4 relative z-10" />
-                    <h2 className="text-3xl font-serif text-white mb-2 relative z-10">Victory!</h2>
-                    {battleSummary.isLevelUp && <div className="text-yellow-300 font-bold text-lg mb-4 animate-bounce">LEVEL UP!</div>}
-                    <div className="space-y-2 mb-8 text-left bg-medieval-900 p-4 rounded relative z-10">
-                        <div className="flex justify-between"><span className="text-medieval-300">Exp</span><span className="text-white">+{battleSummary.exp}</span></div>
-                        <div className="flex justify-between"><span className="text-medieval-300">Gold</span><span className="text-yellow-400">+{battleSummary.gold}</span></div>
-                        {battleSummary.drops.length > 0 && (
-                            <div className="mt-2 border-t border-medieval-700 pt-2">
-                                <span className="text-xs text-medieval-400 block mb-1">Loot:</span>
-                                {battleSummary.drops.map((d, i) => (
-                                    <div key={i} className={`text-sm font-bold ${d.rarity === 'mythic' ? 'text-fuchsia-400' : d.rarity === 'legendary' ? 'text-orange-400' : 'text-white'}`}>
-                                        {d.name}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {battleSummary.isLevelUp && (
-                            <div className="mt-2 border-t border-medieval-700 pt-2 text-xs text-emerald-400 text-center">
-                               HP restored on level up!
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex gap-4 relative z-10">
-                        <button onClick={handleExit} className="flex-1 py-3 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded flex items-center justify-center gap-2 border border-medieval-500">
-                            <Map size={18} /> Town [J]
-                        </button>
-                        <button onClick={handleContinueJourney} className="flex-1 py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-2 border border-emerald-600">
-                            Next [H] <ChevronsRight size={18} />
-                        </button>
-                    </div>
-                </div>
-             </div>
-        )}
-      </div>
-
-      <div className="w-full h-28 bg-medieval-800 border-t-2 border-medieval-600 px-4 flex justify-between items-center relative z-20">
-          <div className="flex gap-4">
-              <button 
-                onPointerDown={() => setKey('ArrowLeft', true)}
+      {/* Bottom controls overlay - absolute positioned at bottom */}
+      <div className="absolute bottom-2 left-2 right-2 z-20 flex justify-between items-end gap-2">
+          {/* Movement buttons (left side) */}
+          <div className="flex gap-2 sm:gap-4">
+              <button
+                onPointerDown={(e) => { e.preventDefault(); setKey('ArrowLeft', true); }}
                 onPointerUp={() => setKey('ArrowLeft', false)}
                 onPointerLeave={() => setKey('ArrowLeft', false)}
-                className="w-20 h-20 bg-medieval-700 border-4 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-95 transition-transform shadow-lg"
+                onPointerCancel={() => setKey('ArrowLeft', false)}
+                className="w-14 h-14 sm:w-20 sm:h-20 bg-medieval-700/90 border-2 sm:border-4 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-95 transition-transform shadow-lg backdrop-blur-sm touch-none"
               >
-                  <ChevronLeft size={48} className="text-medieval-300" />
+                  <ChevronLeft size={32} className="text-medieval-300 sm:hidden" />
+                  <ChevronLeft size={48} className="text-medieval-300 hidden sm:block" />
               </button>
-              <button 
-                onPointerDown={() => setKey('ArrowRight', true)}
+              <button
+                onPointerDown={(e) => { e.preventDefault(); setKey('ArrowRight', true); }}
                 onPointerUp={() => setKey('ArrowRight', false)}
                 onPointerLeave={() => setKey('ArrowRight', false)}
-                className="w-20 h-20 bg-medieval-700 border-4 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-95 transition-transform shadow-lg"
+                onPointerCancel={() => setKey('ArrowRight', false)}
+                className="w-14 h-14 sm:w-20 sm:h-20 bg-medieval-700/90 border-2 sm:border-4 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-95 transition-transform shadow-lg backdrop-blur-sm touch-none"
               >
-                  <ChevronRight size={48} className="text-medieval-300" />
+                  <ChevronRight size={32} className="text-medieval-300 sm:hidden" />
+                  <ChevronRight size={48} className="text-medieval-300 hidden sm:block" />
               </button>
           </div>
 
-          <div className="flex gap-4 items-center">
-             <div className="flex flex-col gap-2">
+          {/* Items + Abilities + Attack (right side) */}
+          <div className="flex gap-2 sm:gap-4 items-end">
+             <div className="flex flex-col gap-1 sm:gap-2">
                  {/* USABLE SLOT 1 */}
-                 <button 
+                 <button
                     id="btn-u1"
                     onClick={() => handleConsumeItem(ItemSlot.USABLE1)}
-                    className={`relative w-10 h-10 border rounded flex items-center justify-center transition-all ${hudStatic.equippedUsable1 ? 'bg-medieval-600 border-medieval-400 hover:bg-medieval-500' : 'bg-gray-800 border-gray-600 opacity-50'}`}
+                    className={`relative w-8 h-8 sm:w-10 sm:h-10 border rounded flex items-center justify-center transition-all ${hudStatic.equippedUsable1 ? 'bg-medieval-600 border-medieval-400 hover:bg-medieval-500' : 'bg-gray-800 border-gray-600 opacity-50'}`}
                  >
                     {hudStatic.equippedUsable1 ? (
-                        hudStatic.equippedUsable1.icon === 'FlaskConical' ? <FlaskConical size={20} className="text-red-400" /> : <Scroll size={20} className="text-blue-400" />
-                    ) : <HelpCircle size={20} className="text-gray-500" />}
-                    <span className="absolute -top-2 -left-2 text-[10px] text-gray-400 bg-black/50 px-1 rounded">[U]</span>
-                    
-                    <div 
-                        ref={el => { if(el) cooldownRefs.current['usable1'] = el }} 
-                        className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none" 
+                        hudStatic.equippedUsable1.icon === 'FlaskConical' ? <FlaskConical size={16} className="text-red-400 sm:hidden" /> : <Scroll size={16} className="text-blue-400 sm:hidden" />
+                    ) : <HelpCircle size={16} className="text-gray-500 sm:hidden" />}
+                    {hudStatic.equippedUsable1 ? (
+                        hudStatic.equippedUsable1.icon === 'FlaskConical' ? <FlaskConical size={20} className="text-red-400 hidden sm:block" /> : <Scroll size={20} className="text-blue-400 hidden sm:block" />
+                    ) : <HelpCircle size={20} className="text-gray-500 hidden sm:block" />}
+                    <span className="absolute -top-2 -left-2 text-[8px] sm:text-[10px] text-gray-400 bg-black/50 px-0.5 sm:px-1 rounded">[U]</span>
+
+                    <div
+                        ref={el => { if(el) cooldownRefs.current['usable1'] = el }}
+                        className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none"
                         style={{ height: '0%', opacity: 0 }}
                     ></div>
                  </button>
-                 
+
                  {/* USABLE SLOT 2 */}
-                 <button 
+                 <button
                     id="btn-u2"
                     onClick={() => handleConsumeItem(ItemSlot.USABLE2)}
-                    className={`relative w-10 h-10 border rounded flex items-center justify-center transition-all ${hudStatic.equippedUsable2 ? 'bg-medieval-600 border-medieval-400 hover:bg-medieval-500' : 'bg-gray-800 border-gray-600 opacity-50'}`}
+                    className={`relative w-8 h-8 sm:w-10 sm:h-10 border rounded flex items-center justify-center transition-all ${hudStatic.equippedUsable2 ? 'bg-medieval-600 border-medieval-400 hover:bg-medieval-500' : 'bg-gray-800 border-gray-600 opacity-50'}`}
                  >
                     {hudStatic.equippedUsable2 ? (
-                        hudStatic.equippedUsable2.icon === 'FlaskConical' ? <FlaskConical size={20} className="text-red-400" /> : <Scroll size={20} className="text-blue-400" />
-                    ) : <HelpCircle size={20} className="text-gray-500" />}
-                    <span className="absolute -top-2 -left-2 text-[10px] text-gray-400 bg-black/50 px-1 rounded">[I]</span>
-                    
-                    <div 
-                        ref={el => { if(el) cooldownRefs.current['usable2'] = el }} 
-                        className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none" 
+                        hudStatic.equippedUsable2.icon === 'FlaskConical' ? <FlaskConical size={16} className="text-red-400 sm:hidden" /> : <Scroll size={16} className="text-blue-400 sm:hidden" />
+                    ) : <HelpCircle size={16} className="text-gray-500 sm:hidden" />}
+                    {hudStatic.equippedUsable2 ? (
+                        hudStatic.equippedUsable2.icon === 'FlaskConical' ? <FlaskConical size={20} className="text-red-400 hidden sm:block" /> : <Scroll size={20} className="text-blue-400 hidden sm:block" />
+                    ) : <HelpCircle size={20} className="text-gray-500 hidden sm:block" />}
+                    <span className="absolute -top-2 -left-2 text-[8px] sm:text-[10px] text-gray-400 bg-black/50 px-0.5 sm:px-1 rounded">[I]</span>
+
+                    <div
+                        ref={el => { if(el) cooldownRefs.current['usable2'] = el }}
+                        className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none"
                         style={{ height: '0%', opacity: 0 }}
                     ></div>
                  </button>
              </div>
 
-             <div className="flex gap-2 mr-2">
+             <div className="flex gap-1 sm:gap-2 mr-1 sm:mr-2">
                 {activeAbilities.slice(0, 3).map((abId, idx) => {
                     const ability = ABILITY_DB.find(a => a.id === abId);
                     if (!ability) return null;
                     const hotkey = idx === 0 ? 'J' : idx === 1 ? 'K' : 'L';
                     return (
-                        <button 
+                        <button
                             key={abId}
-                            id={`btn-ability-${abId}`} 
+                            id={`btn-ability-${abId}`}
                             onClick={() => handleAbilityUse(abId)}
-                            className="relative w-16 h-16 bg-medieval-700 border-2 border-medieval-400 rounded-lg flex items-center justify-center overflow-hidden shadow-inner hover:scale-105 transition-transform active:scale-95"
+                            className="relative w-12 h-12 sm:w-16 sm:h-16 bg-medieval-700/90 border-2 border-medieval-400 rounded-lg flex items-center justify-center overflow-hidden shadow-inner active:scale-95 transition-transform backdrop-blur-sm touch-none"
                         >
-                             {renderIcon(ability.icon, 32, 'text-white')}
-                             <span className="absolute top-1 right-1 text-[10px] text-gray-300 font-bold bg-black/50 px-1 rounded">[{hotkey}]</span>
-                             <div 
-                                ref={el => { if(el) cooldownRefs.current[abId] = el }} 
-                                className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none" 
+                             {renderIcon(ability.icon, 24, 'text-white sm:hidden')}
+                             {renderIcon(ability.icon, 32, 'text-white hidden sm:block')}
+                             <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 text-[8px] sm:text-[10px] text-gray-300 font-bold bg-black/50 px-0.5 sm:px-1 rounded">[{hotkey}]</span>
+                             <div
+                                ref={el => { if(el) cooldownRefs.current[abId] = el }}
+                                className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none"
                                 style={{ height: '0%', opacity: 0 }}
                              ></div>
-                             <span className="absolute bottom-0 text-[9px] text-medieval-200 font-bold w-full text-center bg-black/50">{ability.name}</span>
+                             <span className="absolute bottom-0 text-[7px] sm:text-[9px] text-medieval-200 font-bold w-full text-center bg-black/50 truncate px-0.5">{ability.name}</span>
                         </button>
                     )
                 })}
                 {[...Array(Math.max(0, 3 - activeAbilities.length))].map((_, i) => (
-                    <div key={i} className="w-16 h-16 bg-medieval-900 border-2 border-medieval-700 rounded-lg flex items-center justify-center border-dashed opacity-30">
-                        <Lock size={20} />
+                    <div key={i} className="w-12 h-12 sm:w-16 sm:h-16 bg-medieval-900/50 border-2 border-medieval-700 rounded-lg flex items-center justify-center border-dashed opacity-30">
+                        <Lock size={16} className="sm:hidden" />
+                        <Lock size={20} className="hidden sm:block" />
                     </div>
                 ))}
              </div>
 
-             <button 
+             <button
                 id="btn-attack"
                 onClick={handleManualAttack}
-                className="w-24 h-24 bg-red-900 border-4 border-red-700 rounded-full flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(220,38,38,0.5)] active:scale-95 transition-transform"
+                className="w-16 h-16 sm:w-24 sm:h-24 bg-red-900/90 border-2 sm:border-4 border-red-700 rounded-full flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(220,38,38,0.5)] active:scale-95 transition-transform backdrop-blur-sm touch-none"
              >
-                 <Sword size={48} className="text-white drop-shadow-lg" />
-                 <span className="text-xs font-bold text-red-200 mt-1">ATTACK [H]</span>
-                 
-                 <div 
-                    ref={el => { if(el) cooldownRefs.current['auto_attack'] = el }} 
-                    className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none pointer-events-none" 
+                 <Sword size={32} className="text-white drop-shadow-lg sm:hidden" />
+                 <Sword size={48} className="text-white drop-shadow-lg hidden sm:block" />
+                 <span className="text-[8px] sm:text-xs font-bold text-red-200 mt-0.5 sm:mt-1">ATTACK [H]</span>
+
+                 <div
+                    ref={el => { if(el) cooldownRefs.current['auto_attack'] = el }}
+                    className="absolute bottom-0 left-0 right-0 bg-black/80 transition-none pointer-events-none"
                     style={{ height: '0%', opacity: 0 }}
                  ></div>
              </button>
           </div>
       </div>
 
-      <div className="absolute bottom-32 left-0 w-full text-center text-medieval-500 text-xs opacity-50 pointer-events-none">
-          Tap Arrows to Move • [H] Attack • [J,K,L] Skills • [U,I] Items
+      {/* Help text - only on desktop where keyboard is available */}
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 text-center text-medieval-500 text-[10px] opacity-0 sm:opacity-50 pointer-events-none hidden md:block">
+          [A/D] Move • [H] Attack • [J,K,L] Skills • [U,I] Items
       </div>
+
+      {/* Rotate device overlay - shows when in portrait orientation */}
+      {isPortrait && (
+        <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center text-center p-8">
+          <RotateCw size={64} className="text-medieval-300 mb-6 animate-pulse" />
+          <h2 className="text-2xl font-serif text-medieval-200 mb-3">Rotate your device</h2>
+          <p className="text-medieval-400 text-sm max-w-xs">
+            Realm of the Trinity is best played in landscape mode. Turn your phone sideways to continue.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -731,7 +731,7 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
     );
 
     return (
-        <div className="min-h-screen bg-medieval-900 text-medieval-100 flex flex-col relative" onClick={() => setInteractionMenu(null)}>
+        <div className="fixed inset-0 bg-medieval-900 text-medieval-100 flex flex-col relative overflow-hidden" onClick={() => setInteractionMenu(null)}>
             {renderHeader()}
             {location === 'SQUARE' && renderTownSquare()}
             {location === 'TAVERN' && renderTavern()}

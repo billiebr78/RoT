@@ -111,9 +111,9 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-medieval-900 text-white font-sans">
       {screen === 'splash' && (
-        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-black relative">
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-950 to-black relative overflow-auto">
            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-black/50 to-black"></div>
-           <div className="relative z-10 text-center p-12 border-4 border-medieval-500 bg-black/80 rounded-xl shadow-2xl max-w-2xl w-full min-h-[500px] flex flex-col items-center justify-center">
+           <div className="relative z-10 text-center p-6 sm:p-12 border-4 border-medieval-500 bg-black/80 rounded-xl shadow-2xl max-w-2xl w-full sm:min-h-[500px] flex flex-col items-center justify-center my-auto">
               <h1 className="text-6xl font-serif text-medieval-300 mb-2">Realm of the Trinity</h1>
               <p className="text-medieval-400 mb-10 italic">A Strategy RPG</p>
               
@@ -207,7 +207,7 @@ const App: React.FC = () => {
       )}
 
       {screen === 'dead' && (
-        <div className="h-screen w-full bg-red-950 flex flex-col items-center justify-center text-center">
+        <div className="fixed inset-0 w-full bg-red-950 flex flex-col items-center justify-center text-center p-6 overflow-auto">
             <h1 className="text-6xl font-bold text-red-500 mb-4">YOU DIED</h1>
             <p className="text-medieval-300 mb-8">Your journey has ended... for now.</p>
             <div className="text-sm text-red-300 mb-4">Penalty: 5-25% Gold Loss, Revive with 10% Health</div>

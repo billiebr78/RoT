@@ -92,8 +92,8 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-medieval-900 p-6 text-medieval-100">
-      <div className="w-full max-w-4xl bg-medieval-800 border-2 border-medieval-500 rounded-lg shadow-2xl p-8">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-medieval-900 p-4 sm:p-6 text-medieval-100 overflow-auto">
+      <div className="w-full max-w-4xl bg-medieval-800 border-2 border-medieval-500 rounded-lg shadow-2xl p-4 sm:p-8 my-auto">
         <button onClick={onBack} className="flex items-center text-medieval-400 hover:text-white mb-4">
           <ArrowLeft className="mr-2" /> Back
         </button>
