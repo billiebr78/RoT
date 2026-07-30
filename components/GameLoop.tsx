@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
 import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction, SPRITE_LIBRARY } from '../constants';
-import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette } from '../render/canvas';
+import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES } from '../render/canvas';
 import TopHUD from './game/TopHUD';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
@@ -263,8 +263,17 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   };
 
   const addParticles = (x: number, y: number, count: number, color: string) => {
+      // Cap total particles to MAX_PARTICLES. If we're over, drop the oldest
+      // to make room for new ones. Prevents runaway counts during sustained
+      // combat (each crit spawned 30 particles; a fast Rogue could hit
+      // hundreds in seconds).
+      const state = gameState.current;
+      const overflow = (state.particles.length + count) - MAX_PARTICLES;
+      if (overflow > 0) {
+          state.particles.splice(0, overflow);
+      }
       for(let i=0; i<count; i++) {
-          gameState.current.particles.push({
+          state.particles.push({
               x, y,
               vx: (Math.random() - 0.5) * 8,
               vy: (Math.random() - 0.5) * 8 - 2,
@@ -345,20 +354,31 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       }
   };
 
+  // Throttle updateUI to ~30fps (every 33ms) instead of 60fps. The HUD
+  // (HP bars, cooldown overlays) doesn't need to update every frame —
+  // 30fps is smooth enough for visual feedback and halves the DOM
+  // querySelector/style-mutation work. The canvas draw loop still
+  // runs at full 60fps via drawGame().
+  let lastUITime = 0;
+  const UI_THROTTLE_MS = 33;
+
   const loop = (time: number) => {
     if (gameState.current.playerHp < 1) {
         onDeath();
-        return; 
+        return;
     }
 
     if (!gameState.current.isPaused) {
         const dt = time - gameState.current.lastTime;
-        const safeDt = Math.min(dt, 50); 
+        const safeDt = Math.min(dt, 50);
         gameState.current.lastTime = time;
 
         update(safeDt);
         drawGame();
-        updateUI(); 
+        if (time - lastUITime >= UI_THROTTLE_MS) {
+            updateUI();
+            lastUITime = time;
+        }
     } else {
         gameState.current.lastTime = time;
     }

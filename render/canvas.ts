@@ -126,6 +126,33 @@ export const buildEnemyPalette = (
     return result;
 };
 
+// --- Background caching ---
+// The sky gradient + ground are static (parallaxOffset only moves the
+// hills, which we redraw each frame). Drawing 135 horizontal fillRects
+// for the gradient every frame is wasteful on low-end devices.
+// Render the static parts once into an offscreen canvas and just blit it.
+let bgCache: HTMLCanvasElement | null = null;
+
+const getBackgroundCache = (): HTMLCanvasElement => {
+    if (bgCache) return bgCache;
+    const c = document.createElement('canvas');
+    c.width = CANVAS_WIDTH;
+    c.height = CANVAS_HEIGHT;
+    const cx = c.getContext('2d');
+    if (!cx) return c;
+    // Sky gradient (3 bands)
+    for (let y = 0; y < CANVAS_HEIGHT; y += 4) {
+        const ratio = y / CANVAS_HEIGHT;
+        cx.fillStyle = ratio < 0.3 ? '#0f172a' : ratio < 0.6 ? '#1e293b' : '#334155';
+        cx.fillRect(0, y, CANVAS_WIDTH, 4);
+    }
+    // Ground
+    cx.fillStyle = '#27272a';
+    cx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
+    bgCache = c;
+    return c;
+};
+
 export const drawHills = (ctx: CanvasRenderingContext2D, offset: number, groundY: number) => {
     ctx.fillStyle = '#1e1b4b';
     ctx.beginPath();
@@ -149,20 +176,20 @@ export const drawHills = (ctx: CanvasRenderingContext2D, offset: number, groundY
 };
 
 export const drawBackground = (ctx: CanvasRenderingContext2D, state: GameState) => {
-    for (let y = 0; y < CANVAS_HEIGHT; y += 4) {
-        const ratio = y / CANVAS_HEIGHT;
-        ctx.fillStyle = ratio < 0.3 ? '#0f172a' : ratio < 0.6 ? '#1e293b' : '#334155';
-        ctx.fillRect(0, y, CANVAS_WIDTH, 4);
-    }
+    // Blit cached sky+ground (1 drawImage instead of 135 fillRects)
+    ctx.drawImage(getBackgroundCache(), 0, 0);
+    // Hills scroll with parallax — redraw each frame (only 2 paths)
     drawHills(ctx, state.parallaxOffset, GROUND_Y);
-    ctx.fillStyle = '#27272a';
-    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
+    // Ground texture pebbles — scroll with animFrame
     ctx.fillStyle = '#3f3f46';
     for (let i = 0; i < 30; i++) {
         const rx = (state.animFrame * 2 + i * 50) % CANVAS_WIDTH;
         ctx.fillRect(rx, GROUND_Y + 4 + (i % 3) * 4, 8, 4);
     }
 };
+
+// Hard cap on particles to prevent runaway counts during sustained combat.
+export const MAX_PARTICLES = 100;
 
 export const drawSprite = (
     ctx: CanvasRenderingContext2D,
@@ -247,68 +274,86 @@ export const drawSprite = (
 };
 
 export const drawEffects = (ctx: CanvasRenderingContext2D, state: GameState) => {
-    // Projectiles
+    // Projectiles — batch with default composite op (source-over)
     state.projectiles.forEach(p => {
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
     });
 
-    // VFX
-    state.vfx.forEach(v => {
+    // VFX — batch all under one save/restore with 'lighter' composite
+    // (avoids save/restore per VFX, which was costing ~20 canvas state
+    // changes per frame on busy fights).
+    if (state.vfx.length > 0) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = v.life / v.maxLife;
-
-        if (v.type === 'SLASH') {
-            ctx.strokeStyle = v.color;
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(v.x, v.y, v.size, Math.PI, Math.PI * 1.8);
-            ctx.stroke();
-        } else if (v.type === 'THRUST') {
-            ctx.strokeStyle = v.color;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(v.x, v.y);
-            ctx.lineTo(v.x + v.size, v.y);
-            ctx.stroke();
-        } else if (v.type === 'SMASH') {
-            ctx.fillStyle = v.color;
-            ctx.beginPath();
-            ctx.ellipse(v.x, v.y, v.size / 2, v.size, 0, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (v.type === 'IMPACT') {
-            ctx.fillStyle = v.color;
-            ctx.beginPath();
-            const spikes = 8;
-            for (let i = 0; i < spikes * 2; i++) {
-                const r = (i % 2 === 0) ? v.size : v.size / 2;
-                const a = (Math.PI * i) / spikes;
-                ctx.lineTo(v.x + Math.cos(a) * r, v.y + Math.sin(a) * r);
+        state.vfx.forEach(v => {
+            ctx.globalAlpha = v.life / v.maxLife;
+            if (v.type === 'SLASH') {
+                ctx.strokeStyle = v.color;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(v.x, v.y, v.size, Math.PI, Math.PI * 1.8);
+                ctx.stroke();
+            } else if (v.type === 'THRUST') {
+                ctx.strokeStyle = v.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(v.x, v.y);
+                ctx.lineTo(v.x + v.size, v.y);
+                ctx.stroke();
+            } else if (v.type === 'SMASH') {
+                ctx.fillStyle = v.color;
+                ctx.beginPath();
+                ctx.ellipse(v.x, v.y, v.size / 2, v.size, 0, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (v.type === 'IMPACT') {
+                ctx.fillStyle = v.color;
+                ctx.beginPath();
+                const spikes = 8;
+                for (let i = 0; i < spikes * 2; i++) {
+                    const r = (i % 2 === 0) ? v.size : v.size / 2;
+                    const a = (Math.PI * i) / spikes;
+                    ctx.lineTo(v.x + Math.cos(a) * r, v.y + Math.sin(a) * r);
+                }
+                ctx.fill();
+            } else if (v.type === 'SPIN') {
+                ctx.strokeStyle = v.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(v.x, v.y, v.size, v.size / 3, state.animFrame * 0.5, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (v.type === 'BUFF') {
+                ctx.fillStyle = v.color;
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(v.x + (Math.random() - 0.5) * 20, v.y - (20 - v.life) * 3, 4, 4);
+                }
             }
-            ctx.fill();
-        } else if (v.type === 'SPIN') {
-            ctx.strokeStyle = v.color;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.ellipse(v.x, v.y, v.size, v.size / 3, state.animFrame * 0.5, 0, Math.PI * 2);
-            ctx.stroke();
-        } else if (v.type === 'BUFF') {
-            ctx.fillStyle = v.color;
-            for (let i = 0; i < 3; i++) {
-                ctx.fillRect(v.x + (Math.random() - 0.5) * 20, v.y - (20 - v.life) * 3, 4, 4);
+        });
+        ctx.restore();
+    }
+
+    // Particles — batch without per-particle globalAlpha toggle (group
+    // by alpha bucket instead). Capped at MAX_PARTICLES by the update
+    // loop in GameLoop.
+    if (state.particles.length > 0) {
+        // Sort particles into buckets by approximate alpha to minimize
+        // globalAlpha state changes. Most particles have life 20-35
+        // so we bucket by Math.floor(life/5).
+        const buckets: Record<number, typeof state.particles> = {};
+        for (const p of state.particles) {
+            const key = Math.floor(p.life / 5);
+            if (!buckets[key]) buckets[key] = [];
+            buckets[key].push(p);
+        }
+        for (const [key, particles] of Object.entries(buckets)) {
+            ctx.globalAlpha = Math.min(1, (Number(key) * 5) / 20);
+            for (const p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
             }
         }
-        ctx.restore();
-    });
-
-    // Particles
-    state.particles.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life / 20;
-        ctx.fillRect(p.x, p.y, p.size, p.size);
         ctx.globalAlpha = 1.0;
-    });
+    }
 
     // Floating texts
     ctx.font = "bold 16px monospace";
