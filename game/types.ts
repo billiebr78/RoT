@@ -107,4 +107,5 @@ export interface GameState {
     // left flee zone (playerX <= FLEE_ZONE_WIDTH), counts down from 10000.
     // Reaching 0 triggers handleFlee(). Leaving the zone resets to -1.
     fleeCountdown: number;
+    enemyFleeCountdown: number;
 }

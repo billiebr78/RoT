@@ -109,6 +109,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     enemyPaletteCache: null as Record<string, string> | null,
     cameraX: 0,
     fleeCountdown: -1,
+    enemyFleeCountdown: -1,
   });
 
   const [hudStatic, setHudStatic] = useState({
@@ -234,6 +235,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     gameState.current.playerVx = 0;
     gameState.current.enemyAbilityCooldowns = {};
     gameState.current.projectiles = [];
+    gameState.current.enemyFleeCountdown = -1;
 
     // Pre-bake the enemy's palette ONCE: apply hueShift (random per spawn)
     // and boss darken (0.5 = 50% darker) up front so the per-frame draw
@@ -352,9 +354,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
           }
       } else {
           state.enemyVx = velocity;
-          if (state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'PREPARE' || state.enemyAI.state === 'CASTING') {
-              state.enemyAI.state = 'IDLE'; 
-              state.enemyAI.timer = 500; 
+          if (state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'PREPARE' || state.enemyAI.state === 'CASTING' || state.enemyAI.state === 'HEALING') {
+              if (state.enemyAI.state === 'HEALING') {
+                  addFloatingText(state.enemyX, GROUND_Y - 100, "Interrupted!", "yellow");
+              }
+              state.enemyAI.state = 'IDLE';
+              state.enemyAI.timer = 500;
           }
       }
   };
@@ -546,16 +551,26 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
         if (state.impactTimer > 0) {
             // Do nothing during impact freeze
         } else if (ai.state === 'FLEEING') {
-            // FLEEING runs even during knockback — the enemy is committed to
-            // escaping and should not be stopped by minor hits. The trigger
-            // is entering the right flee zone (enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH),
-            // which means the enemy is physically IN the escape area.
-            state.enemyX += state.enemy.speed * 1.5;
-            // Clamp so the enemy can't leave the arena while fleeing
+            // FLEEING runs even during knockback. Enemy moves toward the right
+            // flee zone at normal speed. Once IN the zone, a 5-second countdown
+            // starts (like the player's). If the enemy leaves the zone (pushed
+            // back by the player), the countdown resets. When it reaches 0,
+            // handleEnemyFlee() fires.
+            state.enemyX += state.enemy.speed;
             if (state.enemyX > ARENA_WIDTH - 30) state.enemyX = ARENA_WIDTH - 30;
-            if (state.enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH) {
-                handleEnemyFlee();
-                return;
+
+            const inFleeZone = state.enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH;
+            if (inFleeZone) {
+                if (state.enemyFleeCountdown < 0) {
+                    state.enemyFleeCountdown = 5000;
+                }
+                state.enemyFleeCountdown -= dt;
+                if (state.enemyFleeCountdown <= 0) {
+                    handleEnemyFlee();
+                    return;
+                }
+            } else {
+                state.enemyFleeCountdown = -1;
             }
         } else if (Math.abs(state.enemyVx) < 0.5) {
             switch (ai.state) {
@@ -564,38 +579,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                     break;
 
                 case 'ADVANCE': {
-                    if (archetype === 'Coward') {
-                        // === Coward ===
-                        // Cowards fight like Aggressors but are jittery: each ADVANCE
-                        // cycle they have a 40% chance to back away instead of
-                        // approaching. When in melee range they attack normally.
-                        // Their distinguishing trait is the higher flee threshold
-                        // (25% vs 10%) — they bail early. They are NOT pure flee
-                        // bags; they just get scared sooner.
-                        if (dist > meleeRange) {
-                            // 40% chance to back away this cycle, 60% to approach
-                            if (Math.random() < 0.4) {
-                                state.enemyX += state.enemy.speed * 0.8;
-                                ai.state = 'COOLDOWN';
-                                ai.timer = 400 + Math.random() * 400;
-                            } else {
-                                state.enemyX -= state.enemy.speed;
-                            }
-                        } else {
-                            // In melee range — attack or use ability (same as Aggressor)
-                            const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
-                            if (readyAbilities.length > 0 && Math.random() < 0.4) {
-                                const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
-                                ai.state = 'CASTING';
-                                ai.abilityToCast = ability;
-                                ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
-                                addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
-                            } else {
-                                ai.state = 'PREPARE';
-                                ai.timer = Math.max(50, 300 + Math.random() * 150);
-                            }
-                        }
-                    } else if (behavior.isRanged) {
+                    if (behavior.isRanged) {
                         // === Skirmisher (ranged, maintains distance) ===
                         const rangedAbility = state.enemy.abilities.find(a => a.effect === 'ranged');
                         if (rangedAbility) {

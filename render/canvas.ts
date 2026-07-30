@@ -480,6 +480,25 @@ export const draw = (
             ctx.fillStyle = "#d946ef";
             ctx.fillText("✦", state.enemyX - 10, GROUND_Y - 110 + Math.sin(state.animFrame * 0.2) * 5);
         }
+        if (aiState === 'HEALING') {
+            // First Aid cast bar — same visual style as the player's cast bar.
+            // Shows progress from 0 to 100% over the 2-second cast time.
+            // Green fill to match the heal color.
+            const healPct = 1 - (state.enemyAI.timer / 2000);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(state.enemyX - 20, GROUND_Y - 100, 40, 6);
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(state.enemyX - 20, GROUND_Y - 100, 40 * healPct, 6);
+        }
+        if (aiState === 'FLEEING' && state.enemyFleeCountdown >= 0) {
+            // Enemy flee countdown — small bar above the enemy showing
+            // the 5-second escape timer.
+            const fleePct = state.enemyFleeCountdown / 5000;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(state.enemyX - 20, GROUND_Y - 100, 40, 4);
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(state.enemyX - 20, GROUND_Y - 100, 40 * fleePct, 4);
+        }
     }
 
     // Effects (projectiles, VFX, particles, floating texts) — all world-space
