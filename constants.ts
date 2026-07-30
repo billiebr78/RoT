@@ -189,8 +189,10 @@ export const ARCHETYPE_BEHAVIORS: Record<EnemyArchetype, ArchetypeBehavior> = {
   Skirmisher: { pursueChance: 0, blockBonus: 0, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: true },
   // Defender: tentative pursuer (40%), +10% block, heals at 50% and 25%, flees at 10%.
   Defender: { pursueChance: 0.4, blockBonus: 0.10, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: false },
-  // Coward: maintains distance, heals early (60%/35%), flees at 25%.
-  Coward: { pursueChance: 0, blockBonus: 0, firstAidThresholds: [0.6, 0.35], fleeThreshold: 0.25, isRanged: true },
+  // Coward: fights like Aggressor but jittery (40% back-away per cycle),
+  // heals early (60%/35%), flees at 25%. Not pure ranged — uses whatever
+  // abilities it has, including melee.
+  Coward: { pursueChance: 1.0, blockBonus: 0, firstAidThresholds: [0.6, 0.35], fleeThreshold: 0.25, isRanged: false },
 };
 
 // Boss overrides: bosses use their rolled archetype's combat behavior but

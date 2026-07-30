@@ -126,6 +126,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     gold: number;
     drops: Item[];
     isLevelUp?: boolean;
+    outcome?: 'victory' | 'enemyFled' | 'playerFled';
+    xpPenalty?: number;
   } | null>(null);
 
   const battleSummaryRef = useRef(battleSummary);
@@ -428,6 +430,11 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     if (Math.abs(state.enemyVx) > 0.1) {
         state.enemyX += state.enemyVx;
         state.enemyVx *= 0.9;
+        // Clamp enemy to arena bounds on BOTH sides. Previously only the
+        // right side was clamped, so knockback could push the enemy past
+        // the left wall (x < 0), trapping it off-screen where the player
+        // couldn't reach it.
+        if (state.enemyX < 30) { state.enemyX = 30; state.enemyVx = 0; }
         if (state.enemyX > ARENA_WIDTH - 30) { state.enemyX = ARENA_WIDTH - 30; state.enemyVx = 0; }
     }
 
@@ -540,11 +547,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
             // Do nothing during impact freeze
         } else if (ai.state === 'FLEEING') {
             // FLEEING runs even during knockback — the enemy is committed to
-            // escaping and should not be stopped by minor hits. Without this
-            // special case, the `enemyVx > 0.5` check below would skip the
-            // FLEEING state entirely whenever the player lands a hit, causing
-            // the enemy to freeze mid-flee.
+            // escaping and should not be stopped by minor hits. The trigger
+            // is entering the right flee zone (enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH),
+            // which means the enemy is physically IN the escape area.
             state.enemyX += state.enemy.speed * 1.5;
+            // Clamp so the enemy can't leave the arena while fleeing
+            if (state.enemyX > ARENA_WIDTH - 30) state.enemyX = ARENA_WIDTH - 30;
             if (state.enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH) {
                 handleEnemyFlee();
                 return;
@@ -556,14 +564,43 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                     break;
 
                 case 'ADVANCE': {
-                    if (behavior.isRanged) {
-                        // === Ranged archetype (Skirmisher, Coward) ===
-                        // Maintain distance, cast ranged abilities when ready.
+                    if (archetype === 'Coward') {
+                        // === Coward ===
+                        // Cowards fight like Aggressors but are jittery: each ADVANCE
+                        // cycle they have a 40% chance to back away instead of
+                        // approaching. When in melee range they attack normally.
+                        // Their distinguishing trait is the higher flee threshold
+                        // (25% vs 10%) — they bail early. They are NOT pure flee
+                        // bags; they just get scared sooner.
+                        if (dist > meleeRange) {
+                            // 40% chance to back away this cycle, 60% to approach
+                            if (Math.random() < 0.4) {
+                                state.enemyX += state.enemy.speed * 0.8;
+                                ai.state = 'COOLDOWN';
+                                ai.timer = 400 + Math.random() * 400;
+                            } else {
+                                state.enemyX -= state.enemy.speed;
+                            }
+                        } else {
+                            // In melee range — attack or use ability (same as Aggressor)
+                            const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
+                            if (readyAbilities.length > 0 && Math.random() < 0.4) {
+                                const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
+                                ai.state = 'CASTING';
+                                ai.abilityToCast = ability;
+                                ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
+                                addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                            } else {
+                                ai.state = 'PREPARE';
+                                ai.timer = Math.max(50, 300 + Math.random() * 150);
+                            }
+                        }
+                    } else if (behavior.isRanged) {
+                        // === Skirmisher (ranged, maintains distance) ===
                         const rangedAbility = state.enemy.abilities.find(a => a.effect === 'ranged');
                         if (rangedAbility) {
                             const idealRange = Math.min(rangedAbility.range, 300);
-                            // Cowards keep more distance than Skirmishers
-                            const minRange = archetype === 'Coward' ? 250 : 150;
+                            const minRange = 150;
                             const canCast = (state.enemyAbilityCooldowns[rangedAbility.id] || 0) <= 0;
 
                             if (dist > idealRange) {
@@ -581,53 +618,20 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                                 ai.timer = 500;
                             }
                         } else {
-                            // No ranged ability — Coward/Skirmisher with only melee.
-                            // Cowards try to keep distance but will fight back if the
-                            // player corners them (otherwise they'd be harmless punching
-                            // bags that just walk backward forever). Skirmishers without
-                            // ranged abilities are even more aggressive — they close in
-                            // and use their melee abilities normally.
-                            if (archetype === 'Coward') {
-                                // Coward: back away to maintain ~250px distance. If the
-                                // player gets inside meleeRange, the Coward panics and
-                                // attacks (melee + any non-ranged abilities) before
-                                // retreating again.
-                                if (dist > 250) {
-                                    // Far enough — hold position, occasionally approach
-                                    if (Math.random() < 0.3) state.enemyX -= state.enemy.speed;
-                                } else if (dist > meleeRange) {
-                                    // In the danger zone — back away
-                                    state.enemyX += state.enemy.speed * 0.8;
-                                } else {
-                                    // Cornered! Attack or use a melee ability out of desperation.
-                                    const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
-                                    if (readyAbilities.length > 0 && Math.random() < 0.5) {
-                                        const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
-                                        ai.state = 'CASTING';
-                                        ai.abilityToCast = ability;
-                                        ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
-                                        addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
-                                    } else {
-                                        ai.state = 'PREPARE';
-                                        ai.timer = Math.max(50, 300 + Math.random() * 150);
-                                    }
-                                }
+                            // Skirmisher without ranged ability: fight as normal melee
+                            if (dist > meleeRange) {
+                                state.enemyX -= state.enemy.speed;
                             } else {
-                                // Skirmisher without ranged ability: fight as a normal melee enemy
-                                if (dist > meleeRange) {
-                                    state.enemyX -= state.enemy.speed;
+                                const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
+                                if (readyAbilities.length > 0 && Math.random() < 0.4) {
+                                    const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
+                                    ai.state = 'CASTING';
+                                    ai.abilityToCast = ability;
+                                    ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
+                                    addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
                                 } else {
-                                    const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
-                                    if (readyAbilities.length > 0 && Math.random() < 0.4) {
-                                        const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
-                                        ai.state = 'CASTING';
-                                        ai.abilityToCast = ability;
-                                        ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
-                                        addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
-                                    } else {
-                                        ai.state = 'PREPARE';
-                                        ai.timer = Math.max(50, 300 + Math.random() * 150);
-                                    }
+                                    ai.state = 'PREPARE';
+                                    ai.timer = Math.max(50, 300 + Math.random() * 150);
                                 }
                             }
                         }
@@ -1644,15 +1648,14 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   // Enemy fled the battle by reaching the right flee zone. The player
   // "wins" the stage (it advances) but gets NO rewards — no exp, no gold,
   // no loot. The enemy escaped. No XP penalty for the player (unlike when
-  // the player flees). Shows a battle summary with zeroes so the player
-  // can click Next to continue.
+  // the player flees). Shows a battle summary with the enemyFled outcome
+  // so the BattleSummary component can render the appropriate messaging.
   const handleEnemyFlee = () => {
     const state = gameState.current;
     addFloatingText(state.enemyX, GROUND_Y - 80, "ESCAPED!", "orange");
     addParticles(state.enemyX, GROUND_Y - 50, 20, 'orange');
     if (enemyContainerRef.current) enemyContainerRef.current.style.opacity = '0';
-    // Show summary with 0 rewards — player still advances to next stage
-    setBattleSummary({ show: true, exp: 0, gold: 0, drops: [], isLevelUp: false });
+    setBattleSummary({ show: true, exp: 0, gold: 0, drops: [], isLevelUp: false, outcome: 'enemyFled' });
     state.isPaused = true;
     state.enemy = null;
     drawGame();
@@ -1713,15 +1716,24 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   };
 
   const handleExit = () => {
-      onExit(calculateExitState());
+      // If the player fled, use the pre-computed penalized character
+      // stashed by handleFlee(). Otherwise compute normal exit state.
+      const pending = (gameState.current as any).pendingFleeChar;
+      if (pending) {
+          (gameState.current as any).pendingFleeChar = null;
+          onExit(pending);
+      } else {
+          onExit(calculateExitState());
+      }
   };
 
-  // Player fled the battle by staying in the left flee zone for 10 seconds.
+  // Player fled the battle by staying in the left flee zone for 5 seconds.
   // Returns to town WITHOUT the current fight's rewards (exp/gold/loot are
   // discarded) and applies a 10% XP penalty on the current level's progress.
   // The penalty cannot cause a level-down: XP is floored at 0 (since
   // character.exp is "progress since last level up", not total XP).
   // No gold penalty. Stage does NOT advance (player stays on the same stage).
+  // Shows a "You ran to fight another day" summary with only a Town button.
   const handleFlee = () => {
       const state = gameState.current;
       const updatedChar = { ...characterRef.current };
@@ -1732,7 +1744,14 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       const penalty = Math.floor(updatedChar.exp * 0.10);
       updatedChar.exp = Math.max(0, updatedChar.exp - penalty);
 
-      onExit(updatedChar);
+      // Show the "player fled" summary BEFORE exiting. The summary's Town
+      // button calls onExit(updatedChar) to actually return to town.
+      setBattleSummary({ show: true, exp: 0, gold: 0, drops: [], isLevelUp: false, outcome: 'playerFled', xpPenalty: penalty });
+      state.isPaused = true;
+      // Store the updated char so the BattleSummary's Town button can call onExit
+      // with the penalized character. We stash it on the gameState ref.
+      (state as any).pendingFleeChar = updatedChar;
+      drawGame();
   };
 
   const setKey = (key: string, pressed: boolean) => {
