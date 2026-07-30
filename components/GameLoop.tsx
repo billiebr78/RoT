@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
 import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction, SPRITE_LIBRARY } from '../constants';
-import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES } from '../render/canvas';
+import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES, ARENA_WIDTH, FLEE_ZONE_WIDTH, PLAYER_SPAWN_X, ENEMY_SPAWN_X } from '../render/canvas';
 import TopHUD from './game/TopHUD';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
@@ -60,34 +60,34 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   useEffect(() => { characterRef.current = character; }, [character]);
 
   const gameState = useRef({
-    playerX: 100,
+    playerX: PLAYER_SPAWN_X,
     playerHp: 0,
     playerMaxHp: 0,
     playerState: 'IDLE' as PlayerState,
-    playerVx: 0, 
-    attackTimer: 0, 
-    attackDuration: 0, 
-    
+    playerVx: 0,
+    attackTimer: 0,
+    attackDuration: 0,
+
     castTimer: 0,
     castTotalTime: 0,
     pendingAbilityId: null as string | null,
-    
+
     enemy: null as Enemy | null,
-    enemyX: 800,
-    enemyVx: 0, 
+    enemyX: ENEMY_SPAWN_X,
+    enemyVx: 0,
     enemyAI: {
         state: 'IDLE' as AIState,
         timer: 0,
         abilityToCast: null as EnemyAbility | null
     },
-    
-    impactTimer: 0, 
+
+    impactTimer: 0,
     lastTime: 0,
     keys: {} as Record<string, boolean>,
     cooldowns: {} as Record<string, number>,
-    usable1Cd: 0, 
+    usable1Cd: 0,
     usable2Cd: 0,
-    potionGlobalCd: 0, 
+    potionGlobalCd: 0,
 
     floatingTexts: [] as { id: number, x: number, y: number, text: string, color: string, life: number }[],
     particles: [] as { x: number, y: number, vx: number, vy: number, life: number, color: string, size: number }[],
@@ -106,6 +106,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     cachedTotalStats: null as Record<Attribute, number> | null,
     enemyAbilityCooldowns: {} as Record<string, number>,
     enemyPaletteCache: null as Record<string, string> | null,
+    cameraX: 0,
+    fleeCountdown: -1,
   });
 
   const [hudStatic, setHudStatic] = useState({
@@ -223,7 +225,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     const stats = gameState.current.cachedTotalStats || calculateTotalStats(character);
     const enemy = generateEnemy(gameState.current.stage, character.level, stats[Attribute.LUCK]);
     gameState.current.enemy = enemy;
-    gameState.current.enemyX = CANVAS_WIDTH + 150;
+    gameState.current.enemyX = ENEMY_SPAWN_X;
     gameState.current.enemyAI = { state: 'IDLE', timer: 0, abilityToCast: null };
     gameState.current.enemyVx = 0;
     gameState.current.playerVx = 0;
@@ -418,14 +420,14 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
     if (Math.abs(state.playerVx) > 0.1) {
         state.playerX += state.playerVx;
-        state.playerVx *= 0.9; 
-        if (state.playerX < 50) { state.playerX = 50; state.playerVx = 0; }
-        if (state.playerX > CANVAS_WIDTH - 50) { state.playerX = CANVAS_WIDTH - 50; state.playerVx = 0; }
+        state.playerVx *= 0.9;
+        if (state.playerX < 30) { state.playerX = 30; state.playerVx = 0; }
+        if (state.playerX > ARENA_WIDTH - 30) { state.playerX = ARENA_WIDTH - 30; state.playerVx = 0; }
     }
     if (Math.abs(state.enemyVx) > 0.1) {
         state.enemyX += state.enemyVx;
-        state.enemyVx *= 0.9; 
-        if (state.enemyX > CANVAS_WIDTH + 150) { state.enemyX = CANVAS_WIDTH + 150; state.enemyVx = 0; }
+        state.enemyVx *= 0.9;
+        if (state.enemyX > ARENA_WIDTH - 30) { state.enemyX = ARENA_WIDTH - 30; state.enemyVx = 0; }
     }
 
     let isMoving = false;
@@ -445,29 +447,48 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
     if (moveRightInput && !moveLeftInput) {
         if (state.castTimer > 0) {
-            state.castTimer = 0; 
+            state.castTimer = 0;
             state.pendingAbilityId = null;
         }
-        state.playerX = Math.min(state.playerX + moveSpeed, CANVAS_WIDTH - 100);
-        state.parallaxOffset += 0.5;
+        state.playerX = Math.min(state.playerX + moveSpeed, ARENA_WIDTH - 30);
         isMoving = true;
     } else if (moveLeftInput && !moveRightInput) {
         if (state.castTimer > 0) {
-            state.castTimer = 0; 
+            state.castTimer = 0;
             state.pendingAbilityId = null;
         }
         const isThreatened = state.enemy && (state.enemyAI.state === 'PREPARE' || state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'CASTING');
-        
+
         if (isThreatened && state.attackTimer <= 0) {
             isDefending = true;
         } else {
-            state.playerX = Math.max(state.playerX - moveSpeed, 50);
-            state.parallaxOffset -= 0.5;
+            state.playerX = Math.max(state.playerX - moveSpeed, 30);
             isMoving = true;
         }
     }
 
     state.playerState = state.castTimer > 0 ? 'CASTING' : (isDefending ? 'DEFENDING' : (isMoving ? 'MOVING' : (state.attackTimer > 0 ? 'ATTACKING' : 'IDLE')));
+
+    // === Camera follows player, clamped to arena bounds ===
+    const targetCameraX = state.playerX - CANVAS_WIDTH / 2;
+    state.cameraX = Math.max(0, Math.min(ARENA_WIDTH - CANVAS_WIDTH, targetCameraX));
+
+    // === Player flee countdown ===
+    // When the player stands in the left flee zone (x <= FLEE_ZONE_WIDTH),
+    // a 10-second countdown starts. Leaving the zone resets it. Reaching 0
+    // triggers handleFlee() which returns to town with an XP penalty.
+    if (state.playerX <= FLEE_ZONE_WIDTH && !state.isPaused) {
+        if (state.fleeCountdown < 0) {
+            state.fleeCountdown = 10000;
+        }
+        state.fleeCountdown -= dt;
+        if (state.fleeCountdown <= 0) {
+            handleFlee();
+            return;
+        }
+    } else {
+        state.fleeCountdown = -1;
+    }
 
     if (state.enemy) {
         const ai = state.enemyAI;
@@ -631,7 +652,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
              }
         }
 
-        if (hit || p.life <= 0 || p.x < 0 || p.x > CANVAS_WIDTH + 200) {
+        if (hit || p.life <= 0 || p.x < 0 || p.x > ARENA_WIDTH) {
             projectilesToRemove.push(index);
             if (hit) {
                  addVFX('IMPACT', p.x, p.y, p.color, 30);
@@ -1324,7 +1345,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                 addFloatingText(state.playerX, GROUND_Y - 120, "Dash!", "cyan");
             } else if (state.enemy) {
                 // Cornered — push the enemy back instead.
-                state.enemyX = Math.min(CANVAS_WIDTH + 150, state.enemyX + dashDistance);
+                state.enemyX = Math.min(ARENA_WIDTH - 30, state.enemyX + dashDistance);
                 applyKnockback('enemy', 6);
                 addVFX('SPIN', state.enemyX - dashDistance / 2, GROUND_Y - 40, 'cyan', 60);
                 addFloatingText(state.enemyX, GROUND_Y - 120, "Pushed!", "cyan");
@@ -1435,7 +1456,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                  const explosionDmg = Math.floor(stats[Attribute.INT] * 1.5) + 5;
                  state.enemy.hp -= explosionDmg;
                  const pushDist = 6 * CHARACTER_WIDTH; // 360px
-                 state.enemyX = Math.min(CANVAS_WIDTH + 150, state.enemyX + pushDist);
+                 state.enemyX = Math.min(ARENA_WIDTH - 30, state.enemyX + pushDist);
                  applyKnockback('enemy', 8);
                  addVFX('IMPACT', state.enemyX - 30, GROUND_Y - 40, 'cyan', 80);
                  addVFX('SMASH', state.playerX + 40, GROUND_Y - 40, 'cyan', 60);
@@ -1489,6 +1510,10 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   const handleContinueJourney = () => {
       const state = gameState.current;
       state.stage++;
+      // Reset positions for the new arena: player at left spawn, camera at 0.
+      state.playerX = PLAYER_SPAWN_X;
+      state.cameraX = 0;
+      state.fleeCountdown = -1;
       setHudStatic(prev => ({ ...prev, stage: state.stage }));
       setBattleSummary(null);
       state.isPaused = false;
@@ -1538,6 +1563,25 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
   const handleExit = () => {
       onExit(calculateExitState());
+  };
+
+  // Player fled the battle by staying in the left flee zone for 10 seconds.
+  // Returns to town WITHOUT the current fight's rewards (exp/gold/loot are
+  // discarded) and applies a 10% XP penalty on the current level's progress.
+  // The penalty cannot cause a level-down: XP is floored at 0 (since
+  // character.exp is "progress since last level up", not total XP).
+  // No gold penalty. Stage does NOT advance (player stays on the same stage).
+  const handleFlee = () => {
+      const state = gameState.current;
+      const updatedChar = { ...characterRef.current };
+      updatedChar.currentHp = state.playerHp;
+      updatedChar.maxStage = state.stage; // don't advance
+
+      // XP penalty: lose 10% of current level progress, floored at 0
+      const penalty = Math.floor(updatedChar.exp * 0.10);
+      updatedChar.exp = Math.max(0, updatedChar.exp - penalty);
+
+      onExit(updatedChar);
   };
 
   const setKey = (key: string, pressed: boolean) => {

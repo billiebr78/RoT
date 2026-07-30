@@ -9,6 +9,14 @@ const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
 const GROUND_Y = 480;
 
+// Arena is wider than the canvas (Street Fighter style). Camera follows
+// the player, clamped to arena bounds. Both player and enemy can retreat
+// into their respective flee zones at the arena edges.
+export const ARENA_WIDTH = 1920;
+export const FLEE_ZONE_WIDTH = 60; // 1 character width (60px)
+export const PLAYER_SPAWN_X = 200;
+export const ENEMY_SPAWN_X = 1160; // 960px from player (same as original)
+
 /**
  * Darken a hex color by a factor (0 = no change, 1 = pure black).
  * Used for the boss shadow effect: bosses are drawn 80% darker than
@@ -366,26 +374,62 @@ export const drawEffects = (ctx: CanvasRenderingContext2D, state: GameState) => 
 };
 
 // Main draw function — orchestrates background, entities, and effects.
+// The arena is wider than the canvas (ARENA_WIDTH > CANVAS_WIDTH), so a
+// camera follows the player. Rendering is split into two layers:
+//   1. Viewport-space: sky gradient (from cache), hills (parallax 0.5x),
+//      UI overlays (enemy indicator, flee countdown).
+//   2. World-space: everything else (player, enemy, projectiles, VFX,
+//      particles, floating texts, flee zone markers). Shifted by -cameraX.
 export const draw = (
     ctx: CanvasRenderingContext2D,
     state: GameState,
     character: Character,
 ) => {
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    drawBackground(ctx, state);
 
-    if (state.enemy && state.enemyX > CANVAS_WIDTH - 50) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(state.animFrame * 0.1))})`;
-        ctx.font = "bold 20px monospace";
-        ctx.fillText("ENEMY ->", CANVAS_WIDTH - 100, GROUND_Y - 20);
+    // === Layer 1: Viewport-space background ===
+    // Sky gradient + ground base from cache (1 drawImage)
+    ctx.drawImage(getBackgroundCache(), 0, 0);
+
+    // Hills with parallax (scroll at 0.5x camera speed for depth illusion)
+    ctx.save();
+    ctx.translate(-state.cameraX * 0.5, 0);
+    drawHills(ctx, 0, GROUND_Y);
+    ctx.restore();
+
+    // === Layer 2: World-space entities (shifted by camera) ===
+    ctx.save();
+    ctx.translate(-state.cameraX, 0);
+
+    // Ground pebbles at fixed world positions
+    ctx.fillStyle = '#3f3f46';
+    for (let i = 0; i < 40; i++) {
+        ctx.fillRect(i * 50, GROUND_Y + 4 + (i % 3) * 4, 8, 4);
     }
 
+    // Flee zone markers (world space, at arena edges)
+    // Left zone (player escape) — green tint
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.12)';
+    ctx.fillRect(0, GROUND_Y - 100, FLEE_ZONE_WIDTH, 100);
+    ctx.font = "bold 10px monospace";
+    ctx.textAlign = "center";
+    ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
+    ctx.fillText("EXIT", FLEE_ZONE_WIDTH / 2, GROUND_Y - 85);
+    // Right zone (enemy escape) — red tint
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+    ctx.fillRect(ARENA_WIDTH - FLEE_ZONE_WIDTH, GROUND_Y - 100, FLEE_ZONE_WIDTH, 100);
+    ctx.fillStyle = 'rgba(248, 113, 113, 0.7)';
+    ctx.fillText("EXIT", ARENA_WIDTH - FLEE_ZONE_WIDTH / 2, GROUND_Y - 85);
+    ctx.textAlign = "left";
+
+    // Player sprite
     const playerSprite = character.classType;
     let playerColorOverride: string | undefined;
     if (state.playerState === 'DEFENDING') playerColorOverride = '#3b82f6';
     if (state.castTimer > 0) playerColorOverride = '#eab308';
     drawSprite(ctx, playerSprite, state.playerX, GROUND_Y - 10, 5, true, state.animFrame, playerColorOverride, state, character.classType);
 
+    // Player cast bar
     if (state.castTimer > 0) {
         const castPct = 1 - (state.castTimer / state.castTotalTime);
         ctx.fillStyle = '#1e293b';
@@ -394,12 +438,14 @@ export const draw = (
         ctx.fillRect(state.playerX - 20, GROUND_Y - 100, 40 * castPct, 6);
     }
 
+    // Player defend circle
     if (state.playerState === 'DEFENDING') {
         ctx.strokeStyle = '#60a5fa';
         ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(state.playerX, GROUND_Y - 40, 30, 0, Math.PI * 2); ctx.stroke();
     }
 
+    // Player barrier
     const barrier = state.activeBuffs.find(b => b.barrierHp && b.barrierHp > 0);
     if (barrier) {
         ctx.strokeStyle = '#22d3ee';
@@ -411,15 +457,12 @@ export const draw = (
         ctx.setLineDash([]);
     }
 
+    // Enemy sprite
     if (state.enemy) {
         const aiState = state.enemyAI.state;
         let enemyColor: string | undefined;
         if (aiState === 'STUNNED') enemyColor = '#555';
         if (aiState === 'DEFENDING') enemyColor = '#b91c1c';
-        // The enemy's hueShift + boss darken are pre-baked into
-        // enemyPaletteCache at spawn time (see spawnEnemy in GameLoop).
-        // Here we just pass the cached palette as paletteOverride — zero
-        // per-pixel color math in the hot draw loop.
         drawSprite(
             ctx, state.enemy.sprite, state.enemyX, GROUND_Y - 10,
             state.enemy.isBoss ? 7 : 5, false, state.animFrame, enemyColor,
@@ -439,7 +482,39 @@ export const draw = (
         }
     }
 
+    // Effects (projectiles, VFX, particles, floating texts) — all world-space
     drawEffects(ctx, state);
+
+    ctx.restore();
+
+    // === Layer 3: Viewport-space UI overlays ===
+    // Enemy off-screen indicator
+    if (state.enemy) {
+        const visibleRight = state.cameraX + CANVAS_WIDTH;
+        if (state.enemyX > visibleRight) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(state.animFrame * 0.1))})`;
+            ctx.font = "bold 20px monospace";
+            ctx.textAlign = "right";
+            ctx.fillText("ENEMY →", CANVAS_WIDTH - 20, GROUND_Y - 20);
+            ctx.textAlign = "left";
+        } else if (state.enemyX < state.cameraX) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(Math.sin(state.animFrame * 0.1))})`;
+            ctx.font = "bold 20px monospace";
+            ctx.fillText("← ENEMY", 20, GROUND_Y - 20);
+        }
+    }
+
+    // Flee countdown overlay
+    if (state.fleeCountdown >= 0) {
+        const seconds = Math.ceil(state.fleeCountdown / 1000);
+        ctx.font = "bold 48px serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = 'black';
+        ctx.fillText(`FLEEING IN ${seconds}...`, CANVAS_WIDTH / 2 + 2, CANVAS_HEIGHT / 2 + 2);
+        ctx.fillStyle = seconds <= 3 ? '#ef4444' : '#facc15';
+        ctx.fillText(`FLEEING IN ${seconds}...`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        ctx.textAlign = "left";
+    }
 };
 
 export { CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y };

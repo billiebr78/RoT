@@ -99,4 +99,11 @@ export interface GameState {
     // baked in. Recomputed once per spawnEnemy() call so the per-frame
     // drawSprite loop does zero color math (just dict lookups).
     enemyPaletteCache: Record<string, string> | null;
+    // Camera x-offset (world-space left edge of the visible viewport).
+    // Calculated each frame from playerX, clamped to [0, ARENA_WIDTH - CANVAS_WIDTH].
+    cameraX: number;
+    // Player flee countdown in ms. -1 = not in flee zone. When in the
+    // left flee zone (playerX <= FLEE_ZONE_WIDTH), counts down from 10000.
+    // Reaching 0 triggers handleFlee(). Leaving the zone resets to -1.
+    fleeCountdown: number;
 }
