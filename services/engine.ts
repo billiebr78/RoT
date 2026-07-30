@@ -334,7 +334,7 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
     return {
         id: `enemy_${Date.now()}`,
         name: isBoss ? `BOSS: ${template.name}` : template.name,
-        sprite: template.sprite, 
+        sprite: template.sprite,
         attributes: {
             [Attribute.ST]: st,
             [Attribute.DX]: dx,
@@ -345,7 +345,7 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
         maxHp: hp,
         hp: hp,
         damage: damage,
-        speed: (0.4 + (Math.random() * 0.4) + (stage * 0.02)) * (isBoss ? 1.5 : 1.0), 
+        speed: (0.4 + (Math.random() * 0.4) + (stage * 0.02)) * (isBoss ? 1.5 : 1.0),
         range: 100, // Matched enemy reach
         expReward,
         goldReward,
@@ -353,6 +353,11 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
         isBoss,
         luckBonus,
         fearResist,
-        abilities: template.abilities || []
+        abilities: template.abilities || [],
+        // Random hue rotation in degrees, capped at ±25% of the full 360°
+        // hue wheel (so ±90°). Gives each spawned enemy a unique color tint
+        // without changing its sprite definition. Grey/black colors (s=0)
+        // are left unchanged by shiftHue, so outlines and shadows stay neutral.
+        hueShift: (Math.random() * 2 - 1) * 90,
     };
 };

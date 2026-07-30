@@ -192,6 +192,7 @@ export interface Enemy {
   luckBonus?: number;
   fearResist: number; // Percentage reduction (0-100)
   abilities: EnemyAbility[];
+  hueShift?: number; // Random hue rotation in degrees (±90 = ±25% of 360°)
 }
 
 export interface CombatLog {
