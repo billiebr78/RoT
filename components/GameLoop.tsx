@@ -528,7 +528,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                     // 50% chance to activate first aid
                     if (Math.random() < 0.5) {
                         ai.state = 'HEALING';
-                        ai.timer = 1000; // 1 second cast
+                        ai.timer = 2000; // 2 second cast (like a normal ability)
                         addFloatingText(state.enemyX, GROUND_Y - 140, "First Aid!", "green");
                     }
                     break; // only one threshold per tick
@@ -538,6 +538,17 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
         if (state.impactTimer > 0) {
             // Do nothing during impact freeze
+        } else if (ai.state === 'FLEEING') {
+            // FLEEING runs even during knockback — the enemy is committed to
+            // escaping and should not be stopped by minor hits. Without this
+            // special case, the `enemyVx > 0.5` check below would skip the
+            // FLEEING state entirely whenever the player lands a hit, causing
+            // the enemy to freeze mid-flee.
+            state.enemyX += state.enemy.speed * 1.5;
+            if (state.enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH) {
+                handleEnemyFlee();
+                return;
+            }
         } else if (Math.abs(state.enemyVx) < 0.5) {
             switch (ai.state) {
                 case 'IDLE':
@@ -570,9 +581,54 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                                 ai.timer = 500;
                             }
                         } else {
-                            // No ranged ability — pure flee behavior (maintain max distance)
-                            if (dist < 350) {
-                                state.enemyX += state.enemy.speed * 0.8;
+                            // No ranged ability — Coward/Skirmisher with only melee.
+                            // Cowards try to keep distance but will fight back if the
+                            // player corners them (otherwise they'd be harmless punching
+                            // bags that just walk backward forever). Skirmishers without
+                            // ranged abilities are even more aggressive — they close in
+                            // and use their melee abilities normally.
+                            if (archetype === 'Coward') {
+                                // Coward: back away to maintain ~250px distance. If the
+                                // player gets inside meleeRange, the Coward panics and
+                                // attacks (melee + any non-ranged abilities) before
+                                // retreating again.
+                                if (dist > 250) {
+                                    // Far enough — hold position, occasionally approach
+                                    if (Math.random() < 0.3) state.enemyX -= state.enemy.speed;
+                                } else if (dist > meleeRange) {
+                                    // In the danger zone — back away
+                                    state.enemyX += state.enemy.speed * 0.8;
+                                } else {
+                                    // Cornered! Attack or use a melee ability out of desperation.
+                                    const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
+                                    if (readyAbilities.length > 0 && Math.random() < 0.5) {
+                                        const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
+                                        ai.state = 'CASTING';
+                                        ai.abilityToCast = ability;
+                                        ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
+                                        addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                                    } else {
+                                        ai.state = 'PREPARE';
+                                        ai.timer = Math.max(50, 300 + Math.random() * 150);
+                                    }
+                                }
+                            } else {
+                                // Skirmisher without ranged ability: fight as a normal melee enemy
+                                if (dist > meleeRange) {
+                                    state.enemyX -= state.enemy.speed;
+                                } else {
+                                    const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
+                                    if (readyAbilities.length > 0 && Math.random() < 0.4) {
+                                        const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
+                                        ai.state = 'CASTING';
+                                        ai.abilityToCast = ability;
+                                        ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
+                                        addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                                    } else {
+                                        ai.state = 'PREPARE';
+                                        ai.timer = Math.max(50, 300 + Math.random() * 150);
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -651,8 +707,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                 case 'HEALING':
                     // First Aid: maintain distance from player while casting.
                     // If the player gets too close, back away. After the cast
-                    // completes, heal 25% maxHp. Interruptible by knockback
-                    // (applyKnockback resets enemy AI to IDLE).
+                    // completes (2 seconds), heal 25% maxHp. Interruptible by
+                    // knockback (applyKnockback resets enemy AI to IDLE, which
+                    // cancels the heal — same as any player cast).
                     if (dist < 200) {
                         state.enemyX += state.enemy.speed * 0.8;
                     }
@@ -667,14 +724,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                     break;
 
                 case 'FLEEING':
-                    // Wimpy flee: run to the right flee zone at full speed.
-                    // Cannot be interrupted — the enemy is committed to escaping.
-                    state.enemyX += state.enemy.speed * 1.5;
-                    // Check if enemy reached the right flee zone
-                    if (state.enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH) {
-                        handleEnemyFlee();
-                        return;
-                    }
+                    // Handled above in the FLEEING special case (runs even
+                    // during knockback). This case is unreachable but kept
+                    // for completeness.
                     break;
 
                 case 'COOLDOWN':
