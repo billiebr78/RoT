@@ -155,62 +155,112 @@ export const ENEMY_ABILITIES_DB: Record<string, EnemyAbility> = {
   FIREBALL: { id: 'e_fire', name: 'Shadow Bolt', damageMult: 1.4, effect: 'ranged', cooldown: 6000, range: 400, castTime: 1000 },
 };
 
+// === ENEMY ARCHETYPES ===
+// Each archetype defines combat behavior + wimpy response (first aid + flee).
+// At spawn, generateEnemy() rolls 50/50 between the enemy's two possible
+// archetypes. The archetype determines: pursue chance, block bonus, first
+// aid HP thresholds, flee HP threshold, and whether the enemy maintains
+// ranged distance.
+//
+// First Aid: when HP crosses a threshold (going down), 50% chance to enter
+// HEALING state. Enemy retreats to maintain distance, casts for 1 second,
+// then heals 25% of maxHp. Interruptible by knockback. One-shot per
+// threshold (can trigger again at the next threshold).
+//
+// Flee: when HP crosses the flee threshold, enemy enters FLEEING state and
+// runs to the right flee zone. If it reaches the zone, it escapes — the
+// player wins the stage but gets no rewards (exp/gold/loot all 0).
+import type { EnemyArchetype } from './types';
+
+export interface ArchetypeBehavior {
+  pursueChance: number;          // 0-1, chance to pursue when entering ADVANCE
+  blockBonus: number;            // additional block chance (added to base 20%)
+  firstAidThresholds: number[];  // HP fractions (e.g. 0.5 = 50%) that can trigger first aid
+  fleeThreshold: number | null;  // HP fraction to start fleeing, null = never flees
+  isRanged: boolean;             // maintains distance instead of closing to melee
+}
+
+export const ARCHETYPE_BEHAVIORS: Record<EnemyArchetype, ArchetypeBehavior> = {
+  // Berzerker: aggressive pursuer, limited self-heal, never flees.
+  Berzerker: { pursueChance: 0.7, blockBonus: 0, firstAidThresholds: [0.25], fleeThreshold: null, isRanged: false },
+  // Aggressor: standard melee pursuer, heals at 50% and 25%, flees at 10%.
+  Aggressor: { pursueChance: 1.0, blockBonus: 0, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: false },
+  // Skirmisher: ranged, maintains distance, heals at 50% and 25%, flees at 10%.
+  Skirmisher: { pursueChance: 0, blockBonus: 0, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: true },
+  // Defender: tentative pursuer (40%), +10% block, heals at 50% and 25%, flees at 10%.
+  Defender: { pursueChance: 0.4, blockBonus: 0.10, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: false },
+  // Coward: maintains distance, heals early (60%/35%), flees at 25%.
+  Coward: { pursueChance: 0, blockBonus: 0, firstAidThresholds: [0.6, 0.35], fleeThreshold: 0.25, isRanged: true },
+};
+
+// Boss overrides: bosses use their rolled archetype's combat behavior but
+// have reduced flee chance (5% instead of archetype's default).
+export const BOSS_FLEE_THRESHOLD = 0.05;
+
 export const ENEMIES_DB = [
-  { 
-    name: 'Goblin Grunt', 
+  {
+    name: 'Goblin Grunt',
     sprite: 'goblin',
     baseExp: 10,
     weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.4, [Attribute.HT]: 0.2, [Attribute.INT]: 0.1 },
-    abilities: []
+    abilities: [],
+    archetypes: ['Berzerker', 'Coward'] as EnemyArchetype[],
   },
-  { 
-    name: 'Skeleton Warrior', 
+  {
+    name: 'Skeleton Warrior',
     sprite: 'skeleton',
     baseExp: 20,
     weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.3, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: []
+    abilities: [],
+    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
   },
-  { 
-    name: 'Orc Berserker', 
+  {
+    name: 'Orc Berserker',
     sprite: 'orc',
     baseExp: 50,
     weights: { [Attribute.ST]: 0.6, [Attribute.DX]: 0.1, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH]
+    abilities: [ENEMY_ABILITIES_DB.SMASH],
+    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
   },
-  { 
-    name: 'Dark Knight', 
+  {
+    name: 'Dark Knight',
     sprite: 'knight',
     baseExp: 150,
     weights: { [Attribute.ST]: 0.5, [Attribute.DX]: 0.2, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH]
+    abilities: [ENEMY_ABILITIES_DB.SMASH],
+    archetypes: ['Berzerker', 'Defender'] as EnemyArchetype[],
   },
-  { 
-    name: 'Vampire', 
+  {
+    name: 'Vampire',
     sprite: 'vampire',
     baseExp: 200,
     weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.4, [Attribute.HT]: 0.2, [Attribute.INT]: 0.1 },
-    abilities: [ENEMY_ABILITIES_DB.DRAIN]
+    abilities: [ENEMY_ABILITIES_DB.DRAIN],
+    archetypes: ['Aggressor', 'Coward'] as EnemyArchetype[],
   },
-  { 
-    name: 'Stone Golem', 
+  {
+    name: 'Stone Golem',
     sprite: 'golem',
     baseExp: 250,
     weights: { [Attribute.ST]: 0.7, [Attribute.DX]: 0.0, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH]
+    abilities: [ENEMY_ABILITIES_DB.SMASH],
+    archetypes: ['Defender', 'Aggressor'] as EnemyArchetype[],
   },
-  { 
-    name: 'Corrupted Sorcerer', 
+  {
+    name: 'Corrupted Sorcerer',
     sprite: 'sorcerer',
     baseExp: 200,
     weights: { [Attribute.ST]: 0.1, [Attribute.DX]: 0.2, [Attribute.HT]: 0.1, [Attribute.INT]: 0.6 },
-    abilities: [ENEMY_ABILITIES_DB.FIREBALL]
+    abilities: [ENEMY_ABILITIES_DB.FIREBALL],
+    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
   },
-  { 
-    name: 'Wyvern', 
+  {
+    name: 'Wyvern',
     sprite: 'dragon',
     baseExp: 500,
     weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.2, [Attribute.HT]: 0.2, [Attribute.INT]: 0.2 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH, ENEMY_ABILITIES_DB.FIREBALL]
+    abilities: [ENEMY_ABILITIES_DB.SMASH, ENEMY_ABILITIES_DB.FIREBALL],
+    archetypes: ['Skirmisher', 'Berzerker'] as EnemyArchetype[],
   },
 ];
 

@@ -175,6 +175,8 @@ export interface Character {
   };
 }
 
+export type EnemyArchetype = 'Berzerker' | 'Aggressor' | 'Skirmisher' | 'Defender' | 'Coward';
+
 export interface Enemy {
   id: string;
   name: string;
@@ -193,6 +195,8 @@ export interface Enemy {
   fearResist: number; // Percentage reduction (0-100)
   abilities: EnemyAbility[];
   hueShift?: number; // Random hue rotation in degrees (±90 = ±25% of 360°)
+  archetype?: EnemyArchetype; // Rolled at spawn from the enemy's possible archetypes
+  firstAidTriggered?: Record<number, boolean>; // Which HP thresholds have already cast first aid
 }
 
 export interface CombatLog {

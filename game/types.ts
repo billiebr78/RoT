@@ -1,6 +1,6 @@
 // Internal game types shared between GameLoop and extracted modules.
 
-export type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING';
+export type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING' | 'HEALING' | 'FLEEING';
 export type PlayerState = 'IDLE' | 'MOVING' | 'ATTACKING' | 'DEFENDING' | 'CASTING';
 
 export interface Projectile {
@@ -69,6 +69,7 @@ export interface GameState {
         state: AIState;
         timer: number;
         abilityToCast: import('../types').EnemyAbility | null;
+        isPursuing: boolean; // For Defender/Berzerker pursue chance rolls
     };
 
     impactTimer: number;

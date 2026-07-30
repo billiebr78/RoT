@@ -1,5 +1,5 @@
 
-import { Character, Item, Attribute, ItemSlot, Enemy, ItemTier, ItemType, WeaponType, OffHandType, Buff } from '../types';
+import { Character, Item, Attribute, ItemSlot, Enemy, ItemTier, ItemType, WeaponType, OffHandType, Buff, EnemyArchetype } from '../types';
 import { getCritChance, ITEM_PREFIXES, ITEM_SUFFIXES, MYTHIC_PREFIXES, MYTHIC_SUFFIXES, ENEMIES_DB, ABILITY_DB, POTION_DB, SCROLL_DB, OFFHAND_DB, WEAPON_TEMPLATES } from '../constants';
 
 export const calculateTotalStats = (character: Character, activeBuffs: { name: string, statBonus?: Partial<Record<Attribute, number>> }[] = []): Record<Attribute, number> => {
@@ -331,6 +331,11 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
         fearResist = 10; 
     }
 
+    // Roll archetype: 50/50 between the enemy's two possible archetypes.
+    // Bosses use the same archetype but with reduced flee threshold (5%).
+    const archetypes = template.archetypes || ['Aggressor', 'Berzerker'];
+    const archetype: EnemyArchetype = archetypes[Math.floor(Math.random() * archetypes.length)];
+
     return {
         id: `enemy_${Date.now()}`,
         name: isBoss ? `BOSS: ${template.name}` : template.name,
@@ -359,5 +364,7 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
         // without changing its sprite definition. Grey/black colors (s=0)
         // are left unchanged by shiftHue, so outlines and shadows stay neutral.
         hueShift: (Math.random() * 2 - 1) * 90,
+        archetype,
+        firstAidTriggered: {},
     };
 };

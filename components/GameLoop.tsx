@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
-import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction, SPRITE_LIBRARY } from '../constants';
+import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction, SPRITE_LIBRARY, ARCHETYPE_BEHAVIORS, BOSS_FLEE_THRESHOLD } from '../constants';
 import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES, ARENA_WIDTH, FLEE_ZONE_WIDTH, PLAYER_SPAWN_X, ENEMY_SPAWN_X } from '../render/canvas';
 import TopHUD from './game/TopHUD';
 import BottomControls from './game/BottomControls';
@@ -78,7 +78,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     enemyAI: {
         state: 'IDLE' as AIState,
         timer: 0,
-        abilityToCast: null as EnemyAbility | null
+        abilityToCast: null as EnemyAbility | null,
+        isPursuing: false,
     },
 
     impactTimer: 0,
@@ -226,7 +227,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     const enemy = generateEnemy(gameState.current.stage, character.level, stats[Attribute.LUCK]);
     gameState.current.enemy = enemy;
     gameState.current.enemyX = ENEMY_SPAWN_X;
-    gameState.current.enemyAI = { state: 'IDLE', timer: 0, abilityToCast: null };
+    gameState.current.enemyAI = { state: 'IDLE', timer: 0, abilityToCast: null, isPursuing: false };
     gameState.current.enemyVx = 0;
     gameState.current.playerVx = 0;
     gameState.current.enemyAbilityCooldowns = {};
@@ -493,57 +494,104 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     if (state.enemy) {
         const ai = state.enemyAI;
         const dist = state.enemyX - state.playerX;
-        const meleeRange = 110; 
-        const retreatDistance = 250; 
+        const meleeRange = 110;
+        const retreatDistance = 250;
+
+        // Resolve archetype behavior (defaults to Aggressor if missing)
+        const archetype = state.enemy.archetype || 'Aggressor';
+        const behavior = ARCHETYPE_BEHAVIORS[archetype];
 
         if (ai.timer > 0) ai.timer -= dt;
         Object.keys(state.enemyAbilityCooldowns).forEach(k => {
              if(state.enemyAbilityCooldowns[k] > 0) state.enemyAbilityCooldowns[k] -= dt;
         });
-        
+
+        // === HP threshold checks (first aid + flee) ===
+        // Run these BEFORE the state machine so they can override any state.
+        const hpPct = state.enemy.hp / state.enemy.maxHp;
+        const fleeThreshold = state.enemy.isBoss ? BOSS_FLEE_THRESHOLD : behavior.fleeThreshold;
+
+        // Check flee first (highest priority — if fleeing, nothing else matters)
+        if (fleeThreshold !== null && hpPct <= fleeThreshold && ai.state !== 'FLEEING' && ai.state !== 'STUNNED') {
+            ai.state = 'FLEEING';
+            ai.timer = 0;
+            addFloatingText(state.enemyX, GROUND_Y - 140, "FLEEING!", "orange");
+        }
+
+        // Check first aid thresholds (only if not already healing/fleeing/stunned)
+        if (ai.state !== 'HEALING' && ai.state !== 'FLEEING' && ai.state !== 'STUNNED') {
+            for (let i = 0; i < behavior.firstAidThresholds.length; i++) {
+                const threshold = behavior.firstAidThresholds[i];
+                if (hpPct <= threshold && !state.enemy.firstAidTriggered?.[i]) {
+                    if (!state.enemy.firstAidTriggered) state.enemy.firstAidTriggered = {};
+                    state.enemy.firstAidTriggered[i] = true;
+                    // 50% chance to activate first aid
+                    if (Math.random() < 0.5) {
+                        ai.state = 'HEALING';
+                        ai.timer = 1000; // 1 second cast
+                        addFloatingText(state.enemyX, GROUND_Y - 140, "First Aid!", "green");
+                    }
+                    break; // only one threshold per tick
+                }
+            }
+        }
+
         if (state.impactTimer > 0) {
-            // Do nothing
-        } else if (Math.abs(state.enemyVx) < 0.5) { 
+            // Do nothing during impact freeze
+        } else if (Math.abs(state.enemyVx) < 0.5) {
             switch (ai.state) {
                 case 'IDLE':
                     if (dist < 1000) ai.state = 'ADVANCE';
                     break;
 
                 case 'ADVANCE': {
-                    const rangedAbility = state.enemy.abilities.find(a => a.effect === 'ranged');
+                    if (behavior.isRanged) {
+                        // === Ranged archetype (Skirmisher, Coward) ===
+                        // Maintain distance, cast ranged abilities when ready.
+                        const rangedAbility = state.enemy.abilities.find(a => a.effect === 'ranged');
+                        if (rangedAbility) {
+                            const idealRange = Math.min(rangedAbility.range, 300);
+                            // Cowards keep more distance than Skirmishers
+                            const minRange = archetype === 'Coward' ? 250 : 150;
+                            const canCast = (state.enemyAbilityCooldowns[rangedAbility.id] || 0) <= 0;
 
-                    if (rangedAbility) {
-                        // Ranged enemy (e.g. Corrupted Sorcerer, Wyvern): maintain
-                        // distance instead of walking into melee range. Stop at
-                        // idealRange, back away if the player gets too close, and
-                        // cast the ranged ability when off cooldown.
-                        const idealRange = Math.min(rangedAbility.range, 300);
-                        const minRange = 150;
-                        const canCast = (state.enemyAbilityCooldowns[rangedAbility.id] || 0) <= 0;
-
-                        if (dist > idealRange) {
-                            // Too far — approach to ideal range.
-                            state.enemyX -= state.enemy.speed;
-                        } else if (dist < minRange) {
-                            // Too close — back away to re-establish spacing.
-                            state.enemyX += state.enemy.speed * 0.8;
-                        } else if (canCast) {
-                            // In range and ready — cast.
-                            ai.state = 'CASTING';
-                            ai.abilityToCast = rangedAbility;
-                            const castTime = state.enemy.isBoss ? rangedAbility.castTime * 0.75 : rangedAbility.castTime;
-                            ai.timer = castTime;
-                            addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                            if (dist > idealRange) {
+                                state.enemyX -= state.enemy.speed;
+                            } else if (dist < minRange) {
+                                state.enemyX += state.enemy.speed * 0.8;
+                            } else if (canCast) {
+                                ai.state = 'CASTING';
+                                ai.abilityToCast = rangedAbility;
+                                const castTime = state.enemy.isBoss ? rangedAbility.castTime * 0.75 : rangedAbility.castTime;
+                                ai.timer = castTime;
+                                addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                            } else {
+                                ai.state = 'COOLDOWN';
+                                ai.timer = 500;
+                            }
                         } else {
-                            // In range but on cooldown — hold position briefly.
-                            ai.state = 'COOLDOWN';
-                            ai.timer = 500;
+                            // No ranged ability — pure flee behavior (maintain max distance)
+                            if (dist < 350) {
+                                state.enemyX += state.enemy.speed * 0.8;
+                            }
                         }
                     } else {
-                        // Melee enemy: approach and attack as before.
+                        // === Melee archetype (Berzerker, Aggressor, Defender) ===
+                        // Roll pursue chance when first entering ADVANCE from COOLDOWN.
+                        if (!ai.isPursuing && behavior.pursueChance < 1.0) {
+                            ai.isPursuing = Math.random() < behavior.pursueChance;
+                            if (!ai.isPursuing) {
+                                // Decided not to pursue — hold position briefly
+                                ai.state = 'COOLDOWN';
+                                ai.timer = 800 + Math.random() * 800;
+                                break;
+                            }
+                        }
+
                         if (dist > meleeRange) {
                             state.enemyX -= state.enemy.speed;
                         } else {
+                            // In melee range — attack or use ability
                             const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
                             if (readyAbilities.length > 0 && Math.random() < 0.4) {
                                  const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
@@ -573,12 +621,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                          handleEnemyAbility(ai.abilityToCast);
                          ai.abilityToCast = null;
                          ai.state = 'COOLDOWN';
-                         ai.timer = 1000; 
+                         ai.timer = 1000;
                      }
                      break;
 
                 case 'ATTACK':
-                    if (state.impactTimer <= 0) { 
+                    if (state.impactTimer <= 0) {
                         if (dist <= meleeRange + 10) {
                             performEnemyAttack(totalStats);
                         } else {
@@ -591,6 +639,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                     break;
 
                 case 'RETREAT':
+                    // Tactical retreat (from Fear/crit) — back away briefly
                     if (ai.timer > 0 && dist < retreatDistance) {
                         state.enemyX += state.enemy.speed * 0.7;
                     } else {
@@ -599,12 +648,42 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                     }
                     break;
 
+                case 'HEALING':
+                    // First Aid: maintain distance from player while casting.
+                    // If the player gets too close, back away. After the cast
+                    // completes, heal 25% maxHp. Interruptible by knockback
+                    // (applyKnockback resets enemy AI to IDLE).
+                    if (dist < 200) {
+                        state.enemyX += state.enemy.speed * 0.8;
+                    }
+                    if (ai.timer <= 0) {
+                        const healAmount = Math.floor(state.enemy.maxHp * 0.25);
+                        state.enemy.hp = Math.min(state.enemy.maxHp, state.enemy.hp + healAmount);
+                        addFloatingText(state.enemyX, GROUND_Y - 100, `+${healAmount}`, "green");
+                        addVFX('BUFF', state.enemyX, GROUND_Y, "green");
+                        ai.state = 'COOLDOWN';
+                        ai.timer = 500;
+                    }
+                    break;
+
+                case 'FLEEING':
+                    // Wimpy flee: run to the right flee zone at full speed.
+                    // Cannot be interrupted — the enemy is committed to escaping.
+                    state.enemyX += state.enemy.speed * 1.5;
+                    // Check if enemy reached the right flee zone
+                    if (state.enemyX >= ARENA_WIDTH - FLEE_ZONE_WIDTH) {
+                        handleEnemyFlee();
+                        return;
+                    }
+                    break;
+
                 case 'COOLDOWN':
                     if (ai.timer <= 0) {
                         ai.state = 'ADVANCE';
-                    } 
+                        ai.isPursuing = false; // reset pursue decision for next cycle
+                    }
                     break;
-                
+
                 case 'STUNNED':
                     if (ai.timer <= 0) {
                         ai.state = 'IDLE';
@@ -617,7 +696,10 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
             }
         }
 
-        if (state.enemyX < state.playerX + 30) state.enemyX = state.playerX + 30;
+        // Prevent enemy from overlapping player (except when fleeing — it runs past)
+        if (ai.state !== 'FLEEING' && state.enemyX < state.playerX + 30) {
+            state.enemyX = state.playerX + 30;
+        }
 
         if (state.enemy.hp <= 0) {
             handleEnemyDeath(totalStats);
@@ -703,7 +785,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT';
       let isBlocked = false;
       if (!isEnemyAttacking && !isControl) {
-           const baseBlock = 0.20;
+           const baseBlock = 0.20 + (state.enemy.archetype === 'Defender' ? 0.10 : 0);
            const levelBlock = (state.stage * 0.75) / 100; 
            const blockChance = Math.min(0.40, baseBlock + levelBlock);
            isBlocked = Math.random() < blockChance;
@@ -1122,7 +1204,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT';
                let isBlocked = false;
                if (!isEnemyAttacking && !isControl) {
-                   const baseBlock = 0.20;
+                   const baseBlock = 0.20 + (state.enemy.archetype === 'Defender' ? 0.10 : 0);
                    const levelBlock = (state.stage * 0.75) / 100; 
                    const blockChance = Math.min(0.40, baseBlock + levelBlock);
                    isBlocked = Math.random() < blockChance;
@@ -1277,7 +1359,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                  const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT';
                  let isBlocked = false;
                  if (!isEnemyAttacking && !isControl) {
-                     const baseBlock = 0.20;
+                     const baseBlock = 0.20 + (state.enemy.archetype === 'Defender' ? 0.10 : 0);
                      const levelBlock = (state.stage * 0.75) / 100; 
                      const blockChance = Math.min(0.40, baseBlock + levelBlock);
                      isBlocked = Math.random() < blockChance;
@@ -1502,6 +1584,23 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     const isLevelUp = currentExp >= expNeeded;
 
     setBattleSummary({ show: true, exp, gold, drops, isLevelUp });
+    state.isPaused = true;
+    state.enemy = null;
+    drawGame();
+  };
+
+  // Enemy fled the battle by reaching the right flee zone. The player
+  // "wins" the stage (it advances) but gets NO rewards — no exp, no gold,
+  // no loot. The enemy escaped. No XP penalty for the player (unlike when
+  // the player flees). Shows a battle summary with zeroes so the player
+  // can click Next to continue.
+  const handleEnemyFlee = () => {
+    const state = gameState.current;
+    addFloatingText(state.enemyX, GROUND_Y - 80, "ESCAPED!", "orange");
+    addParticles(state.enemyX, GROUND_Y - 50, 20, 'orange');
+    if (enemyContainerRef.current) enemyContainerRef.current.style.opacity = '0';
+    // Show summary with 0 rewards — player still advances to next stage
+    setBattleSummary({ show: true, exp: 0, gold: 0, drops: [], isLevelUp: false });
     state.isPaused = true;
     state.enemy = null;
     drawGame();
