@@ -207,7 +207,7 @@ export const ENEMIES_DB = [
     archetypes: ['Berzerker', 'Coward'] as EnemyArchetype[],
   },
   {
-    name: 'Skeleton Warrior',
+    name: 'Skeleton Soldier',
     sprite: 'skeleton',
     baseExp: 20,
     weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.3, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
@@ -215,7 +215,7 @@ export const ENEMIES_DB = [
     archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
   },
   {
-    name: 'Orc Berserker',
+    name: 'Orc Warrior',
     sprite: 'orc',
     baseExp: 50,
     weights: { [Attribute.ST]: 0.6, [Attribute.DX]: 0.1, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },

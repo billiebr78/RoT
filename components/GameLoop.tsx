@@ -480,7 +480,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     // triggers handleFlee() which returns to town with an XP penalty.
     if (state.playerX <= FLEE_ZONE_WIDTH && !state.isPaused) {
         if (state.fleeCountdown < 0) {
-            state.fleeCountdown = 10000;
+            state.fleeCountdown = 5000;
         }
         state.fleeCountdown -= dt;
         if (state.fleeCountdown <= 0) {

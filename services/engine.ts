@@ -338,7 +338,7 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
 
     return {
         id: `enemy_${Date.now()}`,
-        name: isBoss ? `BOSS: ${template.name}` : template.name,
+        name: isBoss ? `BOSS: ${archetype} ${template.name}` : `${archetype} ${template.name}`,
         sprite: template.sprite,
         attributes: {
             [Attribute.ST]: st,
@@ -350,7 +350,7 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
         maxHp: hp,
         hp: hp,
         damage: damage,
-        speed: (0.4 + (Math.random() * 0.4) + (stage * 0.02)) * (isBoss ? 1.5 : 1.0),
+        speed: (0.4 + (Math.random() * 0.4) + (stage * 0.02)) * (isBoss ? 1.5 : 1.0) * 1.1, // +10% base speed
         range: 100, // Matched enemy reach
         expReward,
         goldReward,
