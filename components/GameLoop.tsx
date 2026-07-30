@@ -835,12 +835,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
            finalDmg = Math.ceil(finalDmg * 0.2);
            state.enemy.hp -= finalDmg;
            addFloatingText(state.enemyX, GROUND_Y - 80, "Blocked!", "white");
-           state.impactTimer = 45; 
-           applyKnockback('enemy', 1); 
+           state.impactTimer = 45;
+           applyKnockback('enemy', 1);
            addVFX('IMPACT', state.enemyX, GROUND_Y - 40, "blue");
       } else {
            state.enemy.hp -= finalDmg;
-           applyKnockback('enemy', 1.5);
+           applyKnockback('enemy', 0.5);
            addFloatingText(state.enemyX, GROUND_Y - 100, `${Math.floor(finalDmg)}`, p.isCrit ? "gold" : "orange");
            addVFX('IMPACT', state.enemyX, GROUND_Y - 40, "red");
            if (p.isCrit) {
@@ -908,7 +908,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                state.enemy.hp -= Math.floor(counterDmg);
                addFloatingText(state.enemyX, GROUND_Y - 100, `Counter! ${Math.floor(counterDmg)}`, "gold");
                addVFX('SLASH', state.enemyX, GROUND_Y - 40, 'gold');
-               applyKnockback('enemy', 2);
+               applyKnockback('enemy', 0.5);
                parryBuff.duration = 0; 
                return; 
           }
@@ -927,8 +927,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
               if (state.playerState === 'DEFENDING') {
                   dmg = Math.ceil(dmg * 0.2); 
                   addFloatingText(state.playerX, GROUND_Y - 100, "Blocked!", "blue");
-                  applyKnockback('player', 2); 
-                  applyKnockback('enemy', 1); 
+                  applyKnockback('player', 3);
+                  applyKnockback('enemy', 3);
                   state.impactTimer = 45; 
                   addVFX('IMPACT', state.playerX, GROUND_Y - 40, "blue");
               } else {
@@ -941,12 +941,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                   if (Math.random() * 100 < passiveBlockChance) {
                        dmg = Math.ceil(dmg * 0.3);
                        addFloatingText(state.playerX, GROUND_Y - 100, "Shield Block!", "white");
-                       applyKnockback('player', 1);
+                       applyKnockback('player', 3);
                        state.impactTimer = 30;
                        addVFX('IMPACT', state.playerX, GROUND_Y - 40, "gray");
                   } else {
                        state.playerHp -= dmg;
-                       applyKnockback('player', 1.25);
+                       applyKnockback('player', 1.5);
                        addFloatingText(state.playerX, GROUND_Y - 80, `-${Math.floor(dmg)}`, "red");
                        addVFX('IMPACT', state.playerX, GROUND_Y - 40, "red");
                   }
@@ -981,9 +981,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
           if (state.playerState === 'DEFENDING') {
                dmg = baseDmg * 0.8; 
                addFloatingText(state.playerX, GROUND_Y - 100, "Shield Pierced!", "purple");
-               applyKnockback('player', 2);
+               applyKnockback('player', 1);
           } else {
-               applyKnockback('player', 1.5);
+               applyKnockback('player', 0.5);
           }
           dmg = applyBarrier(dmg);
           
@@ -1003,9 +1003,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
            if (state.playerState === 'DEFENDING') {
                baseDmg *= 0.3;
                addFloatingText(state.playerX, GROUND_Y - 100, "Heavy Block!", "blue");
-               applyKnockback('player', 3); 
+               applyKnockback('player', 1);
            } else {
-               applyKnockback('player', 4);
+               applyKnockback('player', 0.5);
            }
            baseDmg = applyBarrier(baseDmg);
            const finalDmg = Math.floor(baseDmg);
@@ -1254,14 +1254,14 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                    addFloatingText(state.enemyX, GROUND_Y - 80, "Blocked!", "white");
                    const blockedDmg = Math.ceil(result.damage * 0.2);
                    state.enemy.hp -= blockedDmg;
-                   state.impactTimer = 45; 
-                   applyKnockback('enemy', 1); 
-                   applyKnockback('player', 0.5); 
+                   state.impactTimer = 45;
+                   applyKnockback('enemy', 3);
+                   applyKnockback('player', 3);
                    addFloatingText(state.enemyX, GROUND_Y - 60, `-${blockedDmg}`, "gray");
                    addVFX('IMPACT', state.enemyX, GROUND_Y - 40, "blue");
                } else {
                    state.enemy.hp -= Math.floor(result.damage);
-                   applyKnockback('enemy', 1.3); 
+                   applyKnockback('enemy', 1.5);
                    addFloatingText(state.enemyX, GROUND_Y - 80, Math.floor(result.damage).toString(), result.isCrit ? "yellow" : "white");
                    addVFX('IMPACT', state.enemyX, GROUND_Y - 40, result.isCrit ? "gold" : "red");
                    
@@ -1409,12 +1409,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                      const blockedDmg = Math.ceil(dmg * 0.2);
                      state.enemy.hp -= blockedDmg;
                      addFloatingText(state.enemyX, GROUND_Y - 80, "Blocked!", "white");
-                     state.impactTimer = 45; 
-                     applyKnockback('enemy', 1); 
-                     applyKnockback('player', 0.5); 
+                     state.impactTimer = 45;
+                     applyKnockback('enemy', 1);
+                     applyKnockback('player', 1); 
                  } else {
                      state.enemy.hp -= Math.floor(dmg);
-                     applyKnockback('enemy', 2.5); 
+                     applyKnockback('enemy', 0.5);
                      addFloatingText(state.enemyX, GROUND_Y - 100, `${ability.name}! ${Math.floor(dmg)}`, isCrit ? "gold" : "orange");
                      addVFX('IMPACT', state.enemyX, GROUND_Y - 40, isCrit ? "gold" : "red");
                      
@@ -1468,7 +1468,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
             } else if (state.enemy) {
                 // Cornered — push the enemy back instead.
                 state.enemyX = Math.min(ARENA_WIDTH - 30, state.enemyX + dashDistance);
-                applyKnockback('enemy', 6);
+                applyKnockback('enemy', 0.5);
                 addVFX('SPIN', state.enemyX - dashDistance / 2, GROUND_Y - 40, 'cyan', 60);
                 addFloatingText(state.enemyX, GROUND_Y - 120, "Pushed!", "cyan");
             }
@@ -1579,7 +1579,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                  state.enemy.hp -= explosionDmg;
                  const pushDist = 6 * CHARACTER_WIDTH; // 360px
                  state.enemyX = Math.min(ARENA_WIDTH - 30, state.enemyX + pushDist);
-                 applyKnockback('enemy', 8);
+                 applyKnockback('enemy', 0.5);
                  addVFX('IMPACT', state.enemyX - 30, GROUND_Y - 40, 'cyan', 80);
                  addVFX('SMASH', state.playerX + 40, GROUND_Y - 40, 'cyan', 60);
                  addParticles(state.enemyX, GROUND_Y - 50, 25, 'cyan');

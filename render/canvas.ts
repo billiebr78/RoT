@@ -12,10 +12,10 @@ const GROUND_Y = 480;
 // Arena is wider than the canvas (Street Fighter style). Camera follows
 // the player, clamped to arena bounds. Both player and enemy can retreat
 // into their respective flee zones at the arena edges.
-export const ARENA_WIDTH = 1920;
+export const ARENA_WIDTH = 1344;
 export const FLEE_ZONE_WIDTH = 60; // 1 character width (60px)
 export const PLAYER_SPAWN_X = 200;
-export const ENEMY_SPAWN_X = 1160; // 960px from player (same as original)
+export const ENEMY_SPAWN_X = 1144; // symmetric: 200 from right wall
 
 /**
  * Darken a hex color by a factor (0 = no change, 1 = pure black).
