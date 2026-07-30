@@ -111,7 +111,7 @@ export const ABILITY_DB: Ability[] = [
   { id: 'might_titanic', name: 'Titanic Smash', description: 'The ultimate display of strength.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MIGHT, cooldown: 124416, castTime: 1200, damageMultiplier: 6.0, scaling: { damage: 1.0 }, effect: 'damage', icon: 'Skull', requiredLevel: 15, maxLevel: 3, range: 120 },
   
   // Defensive
-  { id: 'might_roar', name: 'Battle Roar', description: '+15% Dmg/Lvl and Heals.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MIGHT, cooldown: 67068, castTime: 0, effect: 'buff', scaling: { effect: 0.15, duration: 2000 }, icon: 'Heart', requiredLevel: 2, maxLevel: 3 },
+  { id: 'might_roar', name: 'Battle Roar', description: '+15% Dmg/Lvl, Heals, and Fears nearby enemies.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MIGHT, cooldown: 67068, castTime: 0, effect: 'buff', scaling: { effect: 0.15, duration: 2000 }, icon: 'Heart', requiredLevel: 2, maxLevel: 3 },
   { id: 'might_majesty', name: 'Majesty', description: 'Exponential Armor Buff (Base 15).', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MIGHT, cooldown: 97200, castTime: 200, effect: 'buff', scaling: { duration: 2000 }, icon: 'Shield', requiredLevel: 8, maxLevel: 3 },
 
   // Passive
@@ -126,7 +126,7 @@ export const ABILITY_DB: Ability[] = [
   { id: 'tactics_assassinate', name: 'Assassinate', description: 'Attempt to end the target instantly.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.TACTICS, cooldown: 134784, castTime: 1500, damageMultiplier: 7.0, scaling: { damage: 1.2 }, effect: 'damage', icon: 'Ghost', requiredLevel: 15, maxLevel: 3, range: 110 },
   
   // Defensive
-  { id: 'tactics_dash', name: 'Dash', description: 'Next 3/4/5 hits have 80% Evasion.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.TACTICS, cooldown: 24296, castTime: 0, effect: 'buff', scaling: { duration: 1000 }, icon: 'Footprints', requiredLevel: 2, maxLevel: 3 },
+  { id: 'tactics_dash', name: 'Dash', description: 'Dash backward 4× width (or push enemy if cornered). Brief evasion.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.TACTICS, cooldown: 24296, castTime: 0, effect: 'buff', scaling: { duration: 1000 }, icon: 'Footprints', requiredLevel: 2, maxLevel: 3 },
   { id: 'tactics_ue', name: 'Parry', description: 'Block next hit and counter with Crit.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.TACTICS, cooldown: 72897, castTime: 0, effect: 'parry', scaling: { duration: 1000 }, icon: 'Ghost', requiredLevel: 8, maxLevel: 3 },
 
   // Passive
@@ -141,7 +141,7 @@ export const ABILITY_DB: Ability[] = [
   { id: 'mystic_armageddon', name: 'Armageddon', description: 'Unleash the full power of the elements.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 165888, castTime: 2000, damageMultiplier: 8.0, scaling: { damage: 1.5 }, effect: 'damage', icon: 'Zap', requiredLevel: 15, maxLevel: 3, range: 600 },
 
   // Defensive
-  { id: 'mystic_aura', name: 'Aura Shield', description: 'Creates a protective barrier.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 48596, castTime: 200, effect: 'barrier', scaling: { effect: 20, duration: 5000 }, icon: 'Shield', requiredLevel: 2, maxLevel: 3 },
+  { id: 'mystic_aura', name: 'Aura Shield', description: 'Barrier + light explosion that damages and pushes enemy back.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 48596, castTime: 200, effect: 'barrier', scaling: { effect: 20, duration: 5000 }, icon: 'Shield', requiredLevel: 2, maxLevel: 3 },
   { id: 'mystic_body', name: 'Body to Mind', description: 'Channel INT to restore Health.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 44712, castTime: 1000, effect: 'heal', scaling: { effect: 3 }, icon: 'Heart', requiredLevel: 8, maxLevel: 3 },
 
   // Passive

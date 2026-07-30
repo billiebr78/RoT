@@ -16,6 +16,9 @@ interface Props {
 }
 
 const PLAYER_SPEED = 2.5;
+// Character width on canvas: sprite is 12 cols × scale 5 = 60px.
+// Used as a reference unit for ability ranges (Dash distance, Aura Shield push).
+const CHARACTER_WIDTH = 60;
 
 type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING';
 type PlayerState = 'IDLE' | 'MOVING' | 'ATTACKING' | 'DEFENDING' | 'CASTING';
@@ -1247,18 +1250,40 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
         addVFX('BUFF', state.playerX, GROUND_Y, "yellow");
 
         if (ability.name === 'Dash') {
-            const dashDuration = getScaledValue(1000, ability.scaling?.duration);
-            const charges = 2 + level;
+            // Dash is now a literal dash: a quick backward (leftward) burst
+            // of movement, distance = 4 × CHARACTER_WIDTH (240px). If the
+            // player is too close to the left wall to complete the dash,
+            // the dash "redirects" and pushes the enemy backward instead
+            // (same 240px distance). Either way the player gets a brief
+            // evasion buff so the dash has defensive value too.
+            const dashDistance = 4 * CHARACTER_WIDTH; // 240px
+            const leftWall = 50;
+            const canDashBack = (state.playerX - dashDistance) >= leftWall;
+
+            if (canDashBack) {
+                // Teleport-style dash: set position directly + spin VFX trail.
+                state.playerX = Math.max(leftWall, state.playerX - dashDistance);
+                addVFX('SPIN', state.playerX + dashDistance / 2, GROUND_Y - 40, 'cyan', 60);
+                addFloatingText(state.playerX, GROUND_Y - 120, "Dash!", "cyan");
+            } else if (state.enemy) {
+                // Cornered — push the enemy back instead.
+                state.enemyX = Math.min(CANVAS_WIDTH + 150, state.enemyX + dashDistance);
+                applyKnockback('enemy', 6);
+                addVFX('SPIN', state.enemyX - dashDistance / 2, GROUND_Y - 40, 'cyan', 60);
+                addFloatingText(state.enemyX, GROUND_Y - 120, "Pushed!", "cyan");
+            }
+
+            // Brief evasion buff (1s) so the dash still functions defensively.
+            const dashDuration = 1000;
             state.activeBuffs.push({
                 id: `buff_${Date.now()}`,
                 name: 'Dash',
                 type: BuffType.MECHANIC,
                 duration: dashDuration,
                 statBonus: {},
-                charges: charges,
+                charges: 1,
                 icon: 'Footprints'
             });
-            addFloatingText(state.playerX, GROUND_Y - 120, `Evasion Up (${charges})`, "cyan");
         } else if (ability.name === 'Battle Roar') {
              // Battle Roar's tooltip says "+15% Dmg/Lvl and Heals." Previously
              // only the damage buff was applied because the heal code lived in
@@ -1288,6 +1313,18 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
              if (actualHeal > 0) {
                  addFloatingText(state.playerX, GROUND_Y - 140, `+${actualHeal} HP`, "green");
                  addVFX('BUFF', state.playerX, GROUND_Y, "green");
+             }
+
+             // Fear component: any enemy within attack range (110px, the
+             // melee range used by handleManualAttack) is forced into the
+             // RETREAT state. triggerEnemyRetreat handles the duration and
+             // the "Fear!" floating text. Bosses resist via fearResist but
+             // Battle Roar bypasses that check — it's a roar, not a crit.
+             if (state.enemy) {
+                 const dist = state.enemyX - state.playerX;
+                 if (dist > 0 && dist <= 110) {
+                     triggerEnemyRetreat();
+                 }
              }
         } else if (ability.name === 'Parry') {
              const parryDuration = getScaledValue(1000, ability.scaling?.duration);
@@ -1322,7 +1359,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
              const scale = ability.scaling?.effect || 10;
              const barrierVal = getScaledValue(shieldBase, scale) + (stats[Attribute.INT] * 2);
              const shieldDur = getScaledValue(10000, ability.scaling?.duration);
-             
+
              state.activeBuffs.push({
                  id: `buff_${Date.now()}`,
                  name: 'Barrier',
@@ -1332,6 +1369,23 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                  icon: 'Shield'
              });
              addFloatingText(state.playerX, GROUND_Y - 120, `Barrier +${barrierVal}`, "cyan");
+
+             // Explosion component: a shockwave radiates from the player,
+             // dealing light damage (scales with INT) and pushing the enemy
+             // back 6 × CHARACTER_WIDTH (360px). The push is clamped to the
+             // canvas bounds so the enemy doesn't despawn off-screen.
+             if (state.enemy) {
+                 const explosionDmg = Math.floor(stats[Attribute.INT] * 1.5) + 5;
+                 state.enemy.hp -= explosionDmg;
+                 const pushDist = 6 * CHARACTER_WIDTH; // 360px
+                 state.enemyX = Math.min(CANVAS_WIDTH + 150, state.enemyX + pushDist);
+                 applyKnockback('enemy', 8);
+                 addVFX('IMPACT', state.enemyX - 30, GROUND_Y - 40, 'cyan', 80);
+                 addVFX('SMASH', state.playerX + 40, GROUND_Y - 40, 'cyan', 60);
+                 addParticles(state.enemyX, GROUND_Y - 50, 25, 'cyan');
+                 addFloatingText(state.enemyX, GROUND_Y - 100, `-${explosionDmg}`, "cyan");
+                 addFloatingText(state.enemyX, GROUND_Y - 140, "Pushed!", "cyan");
+             }
         }
         
         setHudStatic(prev => ({ ...prev, buffs: [...state.activeBuffs] }));
