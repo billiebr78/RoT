@@ -350,7 +350,7 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
         maxHp: hp,
         hp: hp,
         damage: damage,
-        speed: (0.4 + (Math.random() * 0.4) + (stage * 0.02)) * (isBoss ? 1.5 : 1.0) * 1.25,
+        speed: (0.6 + (Math.random() * 0.4) + (stage * 0.02)) * (isBoss ? 1.5 : 1.0) * 1.25,
         range: 100, // Matched enemy reach
         expReward,
         goldReward,

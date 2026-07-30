@@ -493,7 +493,7 @@ export const draw = (
         if (aiState === 'FLEEING' && state.enemyFleeCountdown >= 0) {
             // Enemy flee countdown — small bar above the enemy showing
             // the 5-second escape timer.
-            const fleePct = state.enemyFleeCountdown / 5000;
+            const fleePct = state.enemyFleeCountdown / 3000;
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(state.enemyX - 20, GROUND_Y - 100, 40, 4);
             ctx.fillStyle = '#f97316';
