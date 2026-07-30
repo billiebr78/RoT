@@ -9,6 +9,25 @@ const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
 const GROUND_Y = 480;
 
+/**
+ * Darken a hex color by a factor (0 = no change, 1 = pure black).
+ * Used for the boss shadow effect: bosses are drawn 50% darker than
+ * normal enemies to make them visually distinct as tougher foes.
+ *
+ * Returns the original color if it's not a valid #RRGGBB hex.
+ */
+const darkenColor = (hex: string, factor: number): string => {
+    if (!hex || !hex.startsWith('#') || hex.length !== 7) return hex;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const mult = Math.max(0, 1 - factor);
+    const dr = Math.floor(r * mult);
+    const dg = Math.floor(g * mult);
+    const db = Math.floor(b * mult);
+    return `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`;
+};
+
 export const drawHills = (ctx: CanvasRenderingContext2D, offset: number, groundY: number) => {
     ctx.fillStyle = '#1e1b4b';
     ctx.beginPath();
@@ -58,10 +77,17 @@ export const drawSprite = (
     overrideColor: string | undefined,
     state: GameState,
     characterClassType: string,
+    options?: {
+        darken?: number;          // 0-1, multiplies all RGB by (1-darken)
+        paletteOverride?: Partial<Record<string, string>>;  // merge over sprite palette
+    },
 ) => {
     const sprite = SPRITE_LIBRARY[spriteKey] || SPRITE_LIBRARY['goblin'];
     if (!sprite) return;
     const { rows, palette } = sprite;
+
+    const darken = options?.darken ?? 0;
+    const paletteOverride = options?.paletteOverride;
 
     let animRowIndex = 0;
     if (spriteKey === characterClassType) {
@@ -102,8 +128,17 @@ export const drawSprite = (
         const rowStr = fullRowStr.slice(frameStart, frameStart + 12);
         for (let c = 0; c < 12; c++) {
             const char = rowStr[c];
-            const color = overrideColor || palette[char];
+            // overrideColor (status effect tint like stun/defend) takes
+            // precedence over palette. Otherwise use paletteOverride if
+            // provided, falling back to the sprite's base palette.
+            let color: string | undefined;
+            if (overrideColor) {
+                color = overrideColor;
+            } else {
+                color = (paletteOverride && paletteOverride[char]) || palette[char];
+            }
             if (color && color !== 'transparent') {
+                if (darken > 0) color = darkenColor(color, darken);
                 ctx.fillStyle = color;
                 const dx = (c - 6) * scale;
                 const dy = (r - 16) * scale;
@@ -239,7 +274,16 @@ export const draw = (
         let enemyColor: string | undefined;
         if (aiState === 'STUNNED') enemyColor = '#555';
         if (aiState === 'DEFENDING') enemyColor = '#b91c1c';
-        drawSprite(ctx, state.enemy.sprite, state.enemyX, GROUND_Y - 10, state.enemy.isBoss ? 7 : 5, false, state.animFrame, enemyColor, state, character.classType);
+        // Bosses are drawn 50% darker to visually distinguish them as tougher
+        // foes. The darken factor is applied to every pixel of the sprite,
+        // including the status-effect overrideColor (so a stunned boss stays
+        // darker than a stunned normal enemy).
+        drawSprite(
+            ctx, state.enemy.sprite, state.enemyX, GROUND_Y - 10,
+            state.enemy.isBoss ? 7 : 5, false, state.animFrame, enemyColor,
+            state, character.classType,
+            { darken: state.enemy.isBoss ? 0.5 : 0 },
+        );
 
         if (aiState === 'PREPARE') {
             ctx.font = "900 40px serif";

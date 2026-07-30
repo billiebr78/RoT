@@ -233,6 +233,57 @@ const PALETTES: Record<string, string> = {
     P: '#8b5cf6', // Purple
 };
 
+// Palette variants for visual variety. Each variant overrides specific
+// color keys from the base PALETTES. Pass one of these (or a custom
+// partial palette) as the `paletteOverride` parameter to drawSprite()
+// in render/canvas.ts to recolor any sprite without changing its
+// pixel definition.
+//
+// Example: a "Fire Goblin" would use the goblin sprite with PALETTE_VARIANTS.fire,
+// swapping green -> red-orange. A "Frost Skeleton" would use the skeleton
+// sprite with PALETTE_VARIANTS.ice, swapping white -> cyan.
+//
+// To use: drawSprite(ctx, 'goblin', ..., { paletteOverride: PALETTE_VARIANTS.fire })
+export const PALETTE_VARIANTS: Record<string, Partial<Record<string, string>>> = {
+    // Fire: warm reds and oranges. Swaps green -> red, blue -> orange.
+    fire: {
+        V: '#dc2626', // green -> red
+        B: '#f97316', // blue -> orange
+        G: '#92400e', // grey -> dark bronze
+    },
+    // Ice: cold blues and cyans. Swaps red -> cyan, green -> teal.
+    ice: {
+        R: '#06b6d4', // red -> cyan
+        V: '#0e7490', // green -> teal
+        B: '#e0f2fe', // blue -> pale ice
+        Y: '#7dd3fc', // yellow -> light cyan
+    },
+    // Poison: sickly greens and yellows. Swaps red -> green, blue -> yellow.
+    poison: {
+        R: '#65a30d', // red -> poison green
+        B: '#a3e635', // blue -> sickly yellow-green
+        P: '#16a34a', // purple -> green
+        V: '#84cc16', // green -> lime
+    },
+    // Shadow: desaturated darks. Swaps most colors toward grey/black.
+    // Useful for stealth enemies or corrupted variants.
+    shadow: {
+        V: '#374151', // green -> dark grey
+        B: '#374151', // blue -> dark grey
+        R: '#7f1d1d', // red -> dark red
+        Y: '#a16207', // yellow -> dark amber
+        P: '#581c87', // purple -> dark violet
+        G: '#4b5563', // grey -> darker grey
+        S: '#6b7280', // skin -> grey
+    },
+    // Golden: treasure/boss-gold variant. Swaps greys -> gold.
+    golden: {
+        G: '#facc15', // grey -> gold
+        D: '#a16207', // dark grey -> dark gold
+        K: '#78350f', // black -> dark brown
+    },
+};
+
 // SPRITE SHEET STANDARD:
 // Row 0: Idle
 // Row 1: Move (Walk Cycle)
@@ -595,6 +646,27 @@ export const SPRITE_LIBRARY: Record<string, SpriteFrame> = {
             '_KPPPKPPPK__',
             '_KPPPKPPPK__',
             '_KKKK_KKKK__'
+        ]
+    },
+    'knight': { // Dark Knight - corrupted armored warrior
+        palette: PALETTES,
+        rows: [
+            '___K____K___', // Horn tips
+            '__KK____KK__', // Horn bases
+            '_KDDDDDDDDK_', // Helmet top
+            'KDDDDDDDDDDK', // Helmet upper
+            'KDDKKRRKKDDK', // Visor slit with glowing red eyes
+            'KDDDDDDDDDDK', // Helmet lower
+            '_KKKKKKKKKK_', // Chin guard / neck
+            'KRRDDDDDDRRK', // Shoulders + red cape edges
+            'KRRDDDDDDRRK', // Cape flowing behind
+            'KRDDDDDDDDRK', // Chest plate
+            'KRDDDDDDDDRK', // Chest
+            '_KRDDDDDDRK_', // Belt transition
+            '__KDDDDDDK__', // Waist
+            '__KDKKDKKD__', // Legs split, sword on right
+            '__KDKKDKKW__', // Sword blade
+            '__KKK_KKKW__'  // Feet + sword tip
         ]
     },
     'dragon': { // Wyvern
