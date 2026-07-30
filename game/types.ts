@@ -95,4 +95,8 @@ export interface GameState {
     currentAttackSpeed: number;
     cachedTotalStats: Record<import('../types').Attribute, number> | null;
     enemyAbilityCooldowns: Record<string, number>;
+    // Pre-computed palette for the current enemy: hueShift + boss darken
+    // baked in. Recomputed once per spawnEnemy() call so the per-frame
+    // drawSprite loop does zero color math (just dict lookups).
+    enemyPaletteCache: Record<string, string> | null;
 }

@@ -101,6 +101,31 @@ export const randomHueShift = (maxPercent: number = 25): number => {
     return (Math.random() * 2 - 1) * maxDeg;
 };
 
+/**
+ * Pre-compute a shifted+darkened palette for an enemy. Called ONCE
+ * per spawnEnemy() so the per-frame drawSprite loop does zero color
+ * math — just dict lookups via paletteOverride.
+ *
+ * Returns null if neither hueShift nor darken would have any effect,
+ * so the caller can skip passing paletteOverride and let drawSprite
+ * use the sprite's base palette directly.
+ */
+export const buildEnemyPalette = (
+    basePalette: Record<string, string>,
+    hueShift: number,
+    darken: number,
+): Record<string, string> | null => {
+    if (!hueShift && !darken) return null;
+    const result: Record<string, string> = {};
+    for (const [k, v] of Object.entries(basePalette)) {
+        let c = v;
+        if (hueShift) c = shiftHue(c, hueShift);
+        if (darken) c = darkenColor(c, darken);
+        result[k] = c;
+    }
+    return result;
+};
+
 export const drawHills = (ctx: CanvasRenderingContext2D, offset: number, groundY: number) => {
     ctx.fillStyle = '#1e1b4b';
     ctx.beginPath();
@@ -151,18 +176,14 @@ export const drawSprite = (
     state: GameState,
     characterClassType: string,
     options?: {
-        darken?: number;          // 0-1, multiplies all RGB by (1-darken)
         paletteOverride?: Partial<Record<string, string>>;  // merge over sprite palette
-        hueShift?: number;        // degrees, rotates hue of every non-grey color
     },
 ) => {
     const sprite = SPRITE_LIBRARY[spriteKey] || SPRITE_LIBRARY['goblin'];
     if (!sprite) return;
     const { rows, palette } = sprite;
 
-    const darken = options?.darken ?? 0;
     const paletteOverride = options?.paletteOverride;
-    const hueShift = options?.hueShift ?? 0;
 
     let animRowIndex = 0;
     if (spriteKey === characterClassType) {
@@ -199,25 +220,22 @@ export const drawSprite = (
     for (let r = 0; r < frameHeight; r++) {
         if (yOffset + r >= rows.length) break;
         const fullRowStr = rows[yOffset + r];
-        const frameStart = frameOffset * 12;
+        // Single-frame sprites have 12-char rows; multi-frame have 36.
+        // Clamp frameOffset so we never slice past the end of a single-
+        // frame row (which would return an empty string and make the
+        // sprite disappear — the flickering bug).
+        const maxFrameStart = Math.max(0, fullRowStr.length - 12);
+        const frameStart = Math.min(frameOffset * 12, maxFrameStart);
         const rowStr = fullRowStr.slice(frameStart, frameStart + 12);
         for (let c = 0; c < 12; c++) {
             const char = rowStr[c];
             // overrideColor (status effect tint like stun/defend) takes
             // precedence over palette. Otherwise use paletteOverride if
             // provided, falling back to the sprite's base palette.
-            let color: string | undefined;
-            if (overrideColor) {
-                color = overrideColor;
-            } else {
-                color = (paletteOverride && paletteOverride[char]) || palette[char];
-            }
+            const color = overrideColor
+                ? overrideColor
+                : (paletteOverride && paletteOverride[char]) || palette[char];
             if (color && color !== 'transparent') {
-                // Hue shift is applied first (rotates the base color),
-                // then darken (multiplies RGB down). Both are no-ops when
-                // their respective factor is 0.
-                if (hueShift !== 0) color = shiftHue(color, hueShift);
-                if (darken > 0) color = darkenColor(color, darken);
                 ctx.fillStyle = color;
                 const dx = (c - 6) * scale;
                 const dy = (r - 16) * scale;
@@ -353,23 +371,15 @@ export const draw = (
         let enemyColor: string | undefined;
         if (aiState === 'STUNNED') enemyColor = '#555';
         if (aiState === 'DEFENDING') enemyColor = '#b91c1c';
-        // Bosses are drawn 80% darker to visually distinguish them as tougher
-        // foes. The darken factor is applied to every pixel of the sprite,
-        // including the status-effect overrideColor (so a stunned boss stays
-        // darker than a stunned normal enemy).
-        // The enemy's random hueShift (set at spawn time in generateEnemy)
-        // rotates every non-grey color by up to ±90° (±25% of the wheel),
-        // giving each spawned enemy a unique tint without changing its
-        // sprite definition. Outlines and shadows (pure greys with s=0)
-        // are left untouched by shiftHue so they stay neutral.
+        // The enemy's hueShift + boss darken are pre-baked into
+        // enemyPaletteCache at spawn time (see spawnEnemy in GameLoop).
+        // Here we just pass the cached palette as paletteOverride — zero
+        // per-pixel color math in the hot draw loop.
         drawSprite(
             ctx, state.enemy.sprite, state.enemyX, GROUND_Y - 10,
             state.enemy.isBoss ? 7 : 5, false, state.animFrame, enemyColor,
             state, character.classType,
-            {
-                darken: state.enemy.isBoss ? 0.8 : 0,
-                hueShift: state.enemy.hueShift ?? 0,
-            },
+            { paletteOverride: state.enemyPaletteCache || undefined },
         );
 
         if (aiState === 'PREPARE') {

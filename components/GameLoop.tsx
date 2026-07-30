@@ -2,8 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
-import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction } from '../constants';
-import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y } from '../render/canvas';
+import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction, SPRITE_LIBRARY } from '../constants';
+import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette } from '../render/canvas';
 import TopHUD from './game/TopHUD';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
@@ -102,9 +102,10 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     lootFound: [] as Item[],
     animFrame: 0,
     parallaxOffset: 0,
-    currentAttackSpeed: 1000, 
+    currentAttackSpeed: 1000,
     cachedTotalStats: null as Record<Attribute, number> | null,
-    enemyAbilityCooldowns: {} as Record<string, number>
+    enemyAbilityCooldowns: {} as Record<string, number>,
+    enemyPaletteCache: null as Record<string, string> | null,
   });
 
   const [hudStatic, setHudStatic] = useState({
@@ -222,13 +223,22 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     const stats = gameState.current.cachedTotalStats || calculateTotalStats(character);
     const enemy = generateEnemy(gameState.current.stage, character.level, stats[Attribute.LUCK]);
     gameState.current.enemy = enemy;
-    gameState.current.enemyX = CANVAS_WIDTH + 150; 
-    gameState.current.enemyAI = { state: 'IDLE', timer: 0, abilityToCast: null }; 
+    gameState.current.enemyX = CANVAS_WIDTH + 150;
+    gameState.current.enemyAI = { state: 'IDLE', timer: 0, abilityToCast: null };
     gameState.current.enemyVx = 0;
     gameState.current.playerVx = 0;
-    gameState.current.enemyAbilityCooldowns = {}; 
-    gameState.current.projectiles = []; 
-    
+    gameState.current.enemyAbilityCooldowns = {};
+    gameState.current.projectiles = [];
+
+    // Pre-bake the enemy's palette ONCE: apply hueShift (random per spawn)
+    // and boss darken (0.5 = 50% darker) up front so the per-frame draw
+    // loop does zero color math — just dict lookups via paletteOverride.
+    // This was the main source of per-frame lag on modest tablets.
+    const baseSprite = SPRITE_LIBRARY[enemy.sprite];
+    gameState.current.enemyPaletteCache = baseSprite
+        ? buildEnemyPalette(baseSprite.palette, enemy.hueShift ?? 0, enemy.isBoss ? 0.5 : 0)
+        : null;
+
     setHudStatic(prev => ({
         ...prev,
         enemyName: enemy.name,
@@ -240,7 +250,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
         addFloatingText(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 60, enemy.name, "orange");
         addParticles(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 80, 50, "red");
     }
-    
+
     if (enemyContainerRef.current) enemyContainerRef.current.style.opacity = '1';
     if (enemyHpBarRef.current) enemyHpBarRef.current.style.width = '100%';
   };
@@ -281,20 +291,25 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   const spawnProjectile = (owner: 'player' | 'enemy', startX: number, startY: number, targetX: number, damage: number, isCrit: boolean, color: string, effectType?: string) => {
       const dx = targetX - startX;
       const speed = 12;
-      const angle = Math.atan2(0, dx); 
-      
+      // Projectile travels toward targetX. vx sign matches sign of dx so
+      // an enemy on the right shooting at a player on the left produces
+      // a leftward (negative) vx. The old formula double-negated: cos(atan2)
+      // already returns the sign, then multiplying by (dx<0 ? -1 : 1)
+      // flipped it again — projectiles flew AWAY from the player.
+      const vx = dx >= 0 ? speed : -speed;
+
       gameState.current.projectiles.push({
           id: Math.random(),
           x: startX,
           y: startY,
-          vx: Math.cos(angle) * speed * (dx < 0 ? -1 : 1), 
+          vx,
           vy: 0,
           owner,
           damage,
           isCrit,
           color,
           size: 6,
-          life: 100, 
+          life: 100,
           effectType
       });
   };
@@ -453,36 +468,58 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
                     if (dist < 1000) ai.state = 'ADVANCE';
                     break;
 
-                case 'ADVANCE':
-                    if (dist > meleeRange) {
-                         const rangedAbility = state.enemy.abilities.find(a => a.effect === 'ranged');
-                         const canCastRanged = rangedAbility && (state.enemyAbilityCooldowns[rangedAbility.id] || 0) <= 0;
+                case 'ADVANCE': {
+                    const rangedAbility = state.enemy.abilities.find(a => a.effect === 'ranged');
 
-                         if (canCastRanged && dist < rangedAbility.range && dist > 200) {
-                             ai.state = 'CASTING';
-                             ai.abilityToCast = rangedAbility;
-                             const castTime = state.enemy.isBoss ? rangedAbility.castTime * 0.75 : rangedAbility.castTime;
-                             ai.timer = castTime;
-                             addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
-                         } else {
-                             state.enemyX -= state.enemy.speed;
-                         }
-                    } else {
-                        const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
-                        if (readyAbilities.length > 0 && Math.random() < 0.4) {
-                             const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
-                             ai.state = 'CASTING';
-                             ai.abilityToCast = ability;
-                             const castTime = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
-                             ai.timer = castTime;
-                             addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                    if (rangedAbility) {
+                        // Ranged enemy (e.g. Corrupted Sorcerer, Wyvern): maintain
+                        // distance instead of walking into melee range. Stop at
+                        // idealRange, back away if the player gets too close, and
+                        // cast the ranged ability when off cooldown.
+                        const idealRange = Math.min(rangedAbility.range, 300);
+                        const minRange = 150;
+                        const canCast = (state.enemyAbilityCooldowns[rangedAbility.id] || 0) <= 0;
+
+                        if (dist > idealRange) {
+                            // Too far — approach to ideal range.
+                            state.enemyX -= state.enemy.speed;
+                        } else if (dist < minRange) {
+                            // Too close — back away to re-establish spacing.
+                            state.enemyX += state.enemy.speed * 0.8;
+                        } else if (canCast) {
+                            // In range and ready — cast.
+                            ai.state = 'CASTING';
+                            ai.abilityToCast = rangedAbility;
+                            const castTime = state.enemy.isBoss ? rangedAbility.castTime * 0.75 : rangedAbility.castTime;
+                            ai.timer = castTime;
+                            addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
                         } else {
-                            ai.state = 'PREPARE';
-                            const bossMod = state.enemy.isBoss ? 50 : 0;
-                            ai.timer = Math.max(50, (300 + Math.random() * 150) - bossMod); 
+                            // In range but on cooldown — hold position briefly.
+                            ai.state = 'COOLDOWN';
+                            ai.timer = 500;
+                        }
+                    } else {
+                        // Melee enemy: approach and attack as before.
+                        if (dist > meleeRange) {
+                            state.enemyX -= state.enemy.speed;
+                        } else {
+                            const readyAbilities = state.enemy.abilities.filter(a => a.effect !== 'ranged' && (state.enemyAbilityCooldowns[a.id] || 0) <= 0);
+                            if (readyAbilities.length > 0 && Math.random() < 0.4) {
+                                 const ability = readyAbilities[Math.floor(Math.random() * readyAbilities.length)];
+                                 ai.state = 'CASTING';
+                                 ai.abilityToCast = ability;
+                                 const castTime = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
+                                 ai.timer = castTime;
+                                 addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                            } else {
+                                ai.state = 'PREPARE';
+                                const bossMod = state.enemy.isBoss ? 50 : 0;
+                                ai.timer = Math.max(50, (300 + Math.random() * 150) - bossMod);
+                            }
                         }
                     }
                     break;
+                }
 
                 case 'PREPARE':
                     if (ai.timer <= 0) {
