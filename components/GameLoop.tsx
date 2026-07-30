@@ -1623,6 +1623,40 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
     const expNeeded = getExpForLevel(character.level);
     const isLevelUp = currentExp >= expNeeded;
 
+    // Apply level up immediately so HP refills right when the player
+    // levels up (not only when they return to town). Update both the
+    // gameState (so the next fight starts at full HP) and characterRef
+    // (so calculateExitState doesn't re-apply the level up).
+    if (isLevelUp) {
+        let remainingExp = currentExp;
+        let lvl = character.level;
+        let attributePoints = character.attributePoints;
+        let skillPoints = character.skillPoints;
+        let needed = getExpForLevel(lvl);
+        while (remainingExp >= needed) {
+            remainingExp -= needed;
+            lvl++;
+            attributePoints = (attributePoints || 0) + 1;
+            skillPoints = (skillPoints || 0) + 1;
+            needed = getExpForLevel(lvl);
+        }
+        // Update characterRef so calculateExitState sees the new level
+        const updatedChar = {
+            ...characterRef.current,
+            level: lvl,
+            exp: remainingExp,
+            attributePoints,
+            skillPoints,
+        };
+        const newStats = calculateTotalStats(updatedChar);
+        const newMaxHp = Math.max(10, getHp(newStats[Attribute.HT]));
+        updatedChar.currentHp = newMaxHp;
+        characterRef.current = updatedChar;
+        // Refill playerHp in the gameState so the next fight starts at full
+        state.playerHp = newMaxHp;
+        state.playerMaxHp = newMaxHp;
+    }
+
     setBattleSummary({ show: true, exp, gold, drops, isLevelUp });
     state.isPaused = true;
     state.enemy = null;
@@ -1660,42 +1694,16 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   };
 
   const calculateExitState = () => {
-      // Start from characterRef.current (the latest in-combat state) rather
-      // than the `character` prop. The prop is frozen for the duration of
-      // combat — handleConsumeItem now reassigns characterRef.current to a
-      // fresh object on every item use, so this reads the post-consumption
-      // equipment/stash directly. This also removes the dead
-      // `activeBuffs.length >= 0 ? ... : undefined` ternary that previously
-      // tried (and failed) to overlay the USABLE1/USABLE2 slots onto the
-      // stale prop copy.
+      // Level up (if any) was already applied in handleEnemyDeath, which
+      // updated characterRef.current with the new level/exp/HP. Here we
+      // just merge in the accumulated rewards (exp/gold/loot from fights
+      // that didn't trigger a level up, plus the stage number) and sync
+      // currentHp from the gameState.
       const updatedChar = { ...characterRef.current };
-      updatedChar.exp += gameState.current.expGained;
       updatedChar.gold += gameState.current.goldGained;
       updatedChar.stash = [...updatedChar.stash, ...gameState.current.lootFound];
       updatedChar.maxStage = gameState.current.stage;
       updatedChar.currentHp = gameState.current.playerHp;
-
-      let xpNeeded = getExpForLevel(updatedChar.level);
-      let leveledUp = false;
-      while(updatedChar.exp >= xpNeeded) {
-          updatedChar.exp -= xpNeeded;
-          updatedChar.level++;
-          updatedChar.attributePoints = (updatedChar.attributePoints || 0) + 1;
-          updatedChar.skillPoints = (updatedChar.skillPoints || 0) + 1;
-          xpNeeded = getExpForLevel(updatedChar.level);
-          leveledUp = true;
-      }
-      // QoL: refill HP on level up. The Hub's Tavern offers a gold-cost heal,
-      // but forcing the player to backtrack after every level-up was tedious
-      // — the battle summary even warned "Health not regenerated. Check
-      // inventory!" acknowledging the gap. Refill to the current max HP
-      // (HT doesn't auto-increase on level-up, so maxHp is unchanged, but
-      // the refill itself is the reward for leveling).
-      if (leveledUp) {
-          const newStats = calculateTotalStats(updatedChar);
-          const newMaxHp = Math.max(10, getHp(newStats[Attribute.HT]));
-          updatedChar.currentHp = newMaxHp;
-      }
       return updatedChar;
   };
 
