@@ -354,10 +354,15 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
           }
       } else {
           state.enemyVx = velocity;
-          if (state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'PREPARE' || state.enemyAI.state === 'CASTING' || state.enemyAI.state === 'HEALING') {
-              if (state.enemyAI.state === 'HEALING') {
+          if (state.enemyAI.state === 'HEALING') {
+              // First Aid has only 40% chance to be interrupted per hit.
+              // 60% of the time the enemy "tanks through" the heal.
+              if (Math.random() < 0.4) {
                   addFloatingText(state.enemyX, GROUND_Y - 100, "Interrupted!", "yellow");
+                  state.enemyAI.state = 'IDLE';
+                  state.enemyAI.timer = 500;
               }
+          } else if (state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'PREPARE' || state.enemyAI.state === 'CASTING') {
               state.enemyAI.state = 'IDLE';
               state.enemyAI.timer = 500;
           }
