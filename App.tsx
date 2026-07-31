@@ -109,27 +109,27 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-medieval-900 text-white font-sans">
+    <div className="fixed inset-0 bg-medieval-900 text-white font-sans overflow-y-auto">
       {screen === 'splash' && (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-950 to-black relative overflow-auto">
            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-black/50 to-black"></div>
-           <div className="relative z-10 text-center p-6 sm:p-12 border-4 border-medieval-500 bg-black/80 rounded-xl shadow-2xl max-w-2xl w-full sm:min-h-[500px] flex flex-col items-center justify-center my-auto">
-              <h1 className="text-6xl font-serif text-medieval-300 mb-2">Realm of the Trinity</h1>
-              <p className="text-medieval-400 mb-10 italic">A Strategy RPG</p>
+           <div className="relative z-10 text-center p-4 sm:p-12 border-4 border-medieval-500 bg-black/80 rounded-xl shadow-2xl max-w-2xl w-full flex flex-col items-center justify-center my-auto">
+              <h1 className="text-3xl sm:text-6xl font-serif text-medieval-300 mb-2">Realm of the Trinity</h1>
+              <p className="text-medieval-400 mb-6 sm:mb-10 italic text-sm sm:text-base">A Strategy RPG</p>
               
               {splashView === 'main' && (
-                  <div className="space-y-4 w-full max-w-md">
+                  <div className="space-y-3 sm:space-y-4 w-full max-w-md">
                     <button 
                       onClick={() => setScreen('create')}
                       disabled={saveSlots.length >= 3}
-                      className="w-full py-5 bg-medieval-700 hover:bg-medieval-600 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-medieval-400 rounded text-xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105"
+                      className="w-full py-3 sm:py-5 bg-medieval-700 hover:bg-medieval-600 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-medieval-400 rounded text-base sm:text-xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105"
                     >
                       <Sword className="fill-current" /> New Game
                     </button>
 
                     <button 
                       onClick={() => setSplashView('load')}
-                      className="w-full py-5 bg-medieval-800 hover:bg-medieval-700 border-2 border-medieval-600 rounded text-xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105"
+                      className="w-full py-3 sm:py-5 bg-medieval-800 hover:bg-medieval-700 border-2 border-medieval-600 rounded text-base sm:text-xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105"
                     >
                       <Upload className="fill-current" /> Load Game
                     </button>
@@ -207,13 +207,13 @@ const App: React.FC = () => {
       )}
 
       {screen === 'dead' && (
-        <div className="fixed inset-0 w-full bg-red-950 flex flex-col items-center justify-center text-center p-6 overflow-auto">
-            <h1 className="text-6xl font-bold text-red-500 mb-4">YOU DIED</h1>
-            <p className="text-medieval-300 mb-8">Your journey has ended... for now.</p>
-            <div className="text-sm text-red-300 mb-4">Penalty: 5-25% Gold Loss, Revive with 10% Health</div>
+        <div className="fixed inset-0 w-full bg-red-950 flex flex-col items-center justify-center text-center p-4 sm:p-6 overflow-auto">
+            <h1 className="text-3xl sm:text-6xl font-bold text-red-500 mb-4">YOU DIED</h1>
+            <p className="text-medieval-300 mb-6 sm:mb-8 text-sm sm:text-base">Your journey has ended... for now.</p>
+            <div className="text-xs sm:text-sm text-red-300 mb-4">Penalty: 5-25% Gold Loss, Revive with 10% Health</div>
             <button 
               onClick={handleRevive}
-              className="px-8 py-4 bg-medieval-800 border border-medieval-500 hover:bg-medieval-700 text-white rounded font-bold text-xl"
+              className="px-6 sm:px-8 py-3 sm:py-4 bg-medieval-800 border border-medieval-500 hover:bg-medieval-700 text-white rounded font-bold text-base sm:text-xl"
             >
               Return to Town
             </button>

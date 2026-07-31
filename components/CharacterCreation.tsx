@@ -92,15 +92,15 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-medieval-900 p-4 sm:p-6 text-medieval-100 overflow-auto">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-medieval-900 p-4 sm:p-6 text-medieval-100 overflow-y-auto">
       <div className="w-full max-w-4xl bg-medieval-800 border-2 border-medieval-500 rounded-lg shadow-2xl p-4 sm:p-8 my-auto">
         <button onClick={onBack} className="flex items-center text-medieval-400 hover:text-white mb-4">
           <ArrowLeft className="mr-2" /> Back
         </button>
         
-        <h2 className="text-4xl font-serif text-center text-medieval-300 mb-8">Create Your Hero</h2>
+        <h2 className="text-2xl sm:text-4xl font-serif text-center text-medieval-300 mb-6 sm:mb-8">Create Your Hero</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
           
           {/* Left Column: Details */}
           <div className="space-y-6">
@@ -142,9 +142,9 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
               </p>
             </div>
 
-            <div className="bg-medieval-900 p-4 rounded border border-medieval-600">
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-bold text-lg">Fate Roll (2d10)</span>
+            <div className="bg-medieval-900 p-3 sm:p-4 rounded border border-medieval-600">
+              <div className="flex justify-between items-center mb-3 sm:mb-4">
+                <span className="font-bold text-base sm:text-lg">Fate Roll (2d10)</span>
                 {rollResult === null ? (
                   <button 
                     onClick={rollDice}
@@ -165,11 +165,11 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
           {/* Right Column: Stats */}
           <div className="bg-medieval-900 p-6 rounded border border-medieval-600">
             <h3 className="text-xl font-bold mb-6 text-medieval-300 border-b border-medieval-700 pb-2">Attributes</h3>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {Object.values(Attribute).map(attr => (
                 <div key={attr} className="flex items-center justify-between">
-                  <div className="w-32">
-                    <span className="font-bold block">{attr}</span>
+                  <div className="w-24 sm:w-32">
+                    <span className="font-bold block text-sm sm:text-base">{attr}</span>
                     <span className="text-xs text-medieval-500">
                       {attr === Attribute.ST && 'Phys Dmg'}
                       {attr === Attribute.DX && 'Crit/Eva/Spd'}
@@ -199,11 +199,11 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
               ))}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-medieval-700">
+            <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-medieval-700">
                 <button
                     onClick={handleCreate}
                     disabled={availablePoints > 0 || !name || !rollResult}
-                    className="w-full py-4 bg-emerald-800 hover:bg-emerald-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold text-xl rounded flex justify-center items-center transition-all"
+                    className="w-full py-3 sm:py-4 bg-emerald-800 hover:bg-emerald-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold text-base sm:text-xl rounded flex justify-center items-center transition-all"
                 >
                     Begin Journey <ChevronRight className="ml-2" />
                 </button>

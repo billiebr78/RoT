@@ -82,9 +82,9 @@ const Tavern: React.FC<Props> = ({
     );
 
     const renderEquipmentPaperDoll = () => (
-        <div className="w-1/3 flex flex-col items-center gap-4">
-            <h3 className="font-serif text-xl text-medieval-300 border-b border-medieval-600 w-full text-center pb-2">Equipped</h3>
-            <div className="relative w-64 h-96 bg-medieval-900 rounded-full border border-medieval-700 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center gap-4">
+            <h3 className="font-serif text-lg sm:text-xl text-medieval-300 border-b border-medieval-600 w-full text-center pb-2">Equipped</h3>
+            <div className="relative w-48 sm:w-64 h-72 sm:h-96 bg-medieval-900 rounded-full border border-medieval-700 flex items-center justify-center shrink-0">
                 <div className="absolute top-4 left-1/2 -translate-x-1/2">
                     <SlotIcon slot={ItemSlot.HEAD} item={character.equipment[ItemSlot.HEAD]}
                         onMouseEnter={onItemHover} onMouseLeave={onItemLeave}
@@ -145,9 +145,9 @@ const Tavern: React.FC<Props> = ({
     );
 
     const renderStash = () => (
-        <div className="flex-1 bg-medieval-900 rounded p-4 border border-medieval-700">
-            <h3 className="font-serif text-xl text-medieval-300 mb-4">Stash ({character.stash.length} items)</h3>
-            <div className="grid grid-cols-4 gap-3 max-h-[400px] overflow-y-auto">
+        <div className="flex-1 bg-medieval-900 rounded p-3 sm:p-4 border border-medieval-700 min-w-0">
+            <h3 className="font-serif text-base sm:text-xl text-medieval-300 mb-3 sm:mb-4">Stash ({character.stash.length})</h3>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 max-h-[300px] sm:max-h-[400px] overflow-y-auto">
                 {character.stash.map((item, idx) => (
                     <InventoryItem
                         key={idx}
@@ -181,12 +181,12 @@ const Tavern: React.FC<Props> = ({
                     </div>
                 </div>
 
-                <div className="flex gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
                     {[AbilityTree.MIGHT, AbilityTree.TACTICS, AbilityTree.MYSTICS].map(tree => (
                         <button
                             key={tree}
                             onClick={() => onSetAbilityTreeTab(tree)}
-                            className={`flex-1 py-2 px-4 rounded border-2 font-serif uppercase tracking-widest transition-all ${
+                            className={`flex-1 py-2 px-2 sm:px-4 rounded border-2 font-serif uppercase tracking-widest transition-all text-xs sm:text-base ${
                                 abilityTreeTab === tree
                                 ? 'bg-medieval-700 border-medieval-300 text-white shadow-lg'
                                 : 'bg-medieval-900 border-medieval-700 text-medieval-500 hover:bg-medieval-800'
@@ -197,7 +197,7 @@ const Tavern: React.FC<Props> = ({
                     ))}
                 </div>
 
-                <div className="flex-1 grid grid-cols-3 gap-6 overflow-y-auto">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 overflow-y-auto">
                     {[AbilityStyle.OFFENSIVE, AbilityStyle.DEFENSIVE, AbilityStyle.PASSIVE].map(style => {
                         const styleAbilities = ABILITY_DB.filter(a => a.tree === abilityTreeTab && a.style === style);
                         return (
@@ -265,27 +265,27 @@ const Tavern: React.FC<Props> = ({
     };
 
     return (
-        <div className="flex-1 p-6 flex gap-6 overflow-hidden">
-            <div className="w-1/4 flex flex-col gap-6">
+        <div className="flex-1 p-3 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-6 overflow-y-auto">
+            <div className="flex sm:flex-col gap-3 sm:gap-6 sm:w-1/4 shrink-0">
                 {renderAttributes()}
 
-                <nav className="flex flex-col gap-2">
-                    <button onClick={() => onSetActiveTab('equipment')} className={`p-3 text-left rounded border transition-all flex items-center gap-3 ${activeTab === 'equipment' ? 'bg-medieval-700 border-medieval-400 text-white' : 'bg-medieval-900 border-medieval-700 hover:bg-medieval-800'}`}>
-                        <Backpack size={20} /> Equipment
+                <nav className="flex sm:flex-col gap-2 shrink-0">
+                    <button onClick={() => onSetActiveTab('equipment')} className={`p-2 sm:p-3 text-left rounded border transition-all flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${activeTab === 'equipment' ? 'bg-medieval-700 border-medieval-400 text-white' : 'bg-medieval-900 border-medieval-700 hover:bg-medieval-800'}`}>
+                        <Backpack size={18} /> <span className="hidden sm:inline">Equipment</span>
                     </button>
-                    <button onClick={() => onSetActiveTab('abilities')} className={`p-3 text-left rounded border transition-all flex items-center gap-3 ${activeTab === 'abilities' ? 'bg-medieval-700 border-medieval-400 text-white' : 'bg-medieval-900 border-medieval-700 hover:bg-medieval-800'}`}>
-                        <Activity size={20} /> Abilities
+                    <button onClick={() => onSetActiveTab('abilities')} className={`p-2 sm:p-3 text-left rounded border transition-all flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${activeTab === 'abilities' ? 'bg-medieval-700 border-medieval-400 text-white' : 'bg-medieval-900 border-medieval-700 hover:bg-medieval-800'}`}>
+                        <Activity size={18} /> <span className="hidden sm:inline">Abilities</span>
                         {character.skillPoints > 0 && <span className="bg-yellow-500 text-black text-[10px] px-1.5 rounded-full font-bold animate-bounce">{character.skillPoints}</span>}
                     </button>
                 </nav>
-                <button onClick={onBack} className="mt-auto py-3 bg-medieval-800 hover:bg-medieval-700 border border-medieval-500 text-medieval-200 font-bold rounded flex items-center justify-center gap-2">
-                    <Map size={18} /> Back to Town
+                <button onClick={onBack} className="sm:mt-auto py-2 sm:py-3 px-2 sm:px-0 bg-medieval-800 hover:bg-medieval-700 border border-medieval-500 text-medieval-200 font-bold rounded flex items-center justify-center gap-2 text-sm shrink-0">
+                    <Map size={16} /> <span className="hidden sm:inline">Back to Town</span><span className="sm:hidden">Back</span>
                 </button>
             </div>
 
-            <div className="flex-1 bg-medieval-800 rounded border-2 border-medieval-600 p-6 overflow-y-auto relative">
+            <div className="flex-1 bg-medieval-800 rounded border-2 border-medieval-600 p-3 sm:p-6 overflow-y-auto relative min-h-[300px]">
                 {activeTab === 'equipment' && (
-                    <div className="flex gap-8 h-full">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 h-full">
                         {renderEquipmentPaperDoll()}
                         {renderStash()}
                     </div>
