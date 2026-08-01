@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Item } from '../../types';
-import { Trophy, Bed, ChevronsRight, Footprints, AlertTriangle } from 'lucide-react';
+import { ChevronsRight, AlertTriangle } from 'lucide-react';
+import { GiTrophyCup, GiBed, GiFootprint } from 'react-icons/gi';
 
 interface BattleSummaryData {
     show: boolean;
@@ -48,11 +49,11 @@ const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealA
     let showRewards = true;
 
     if (outcome === 'victory') {
-        icon = <Trophy className="text-yellow-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
+        icon = <GiTrophyCup className="text-yellow-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
         title = 'Victory!';
         titleColor = 'text-white';
     } else if (outcome === 'enemyFled') {
-        icon = <Footprints className="text-orange-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
+        icon = <GiFootprint className="text-orange-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
         title = 'Enemy Escaped!';
         titleColor = 'text-orange-300';
         subtitle = (
@@ -62,7 +63,7 @@ const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealA
         );
         showRewards = false;
     } else {
-        icon = <Footprints className="text-blue-400 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
+        icon = <GiFootprint className="text-blue-400 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
         title = 'You Escaped';
         titleColor = 'text-blue-200';
         subtitle = (
@@ -172,7 +173,7 @@ const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealA
                             className="flex-1 py-2 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded flex flex-col items-center justify-center gap-0.5 border border-blue-600 active:scale-95 transition-transform"
                             style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
                         >
-                            <Bed size={16} />
+                            <GiBed size={16} />
                             <span>Rest [H]</span>
                             <span className="text-blue-300" style={{ fontSize: 'clamp(8px, 2vmin, 10px)' }}>+{restHealAmount} HP (5 turns)</span>
                         </button>

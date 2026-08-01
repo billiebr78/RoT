@@ -1,7 +1,8 @@
 import React from 'react';
 import { Item, ItemSlot, Character, Buff } from '../../types';
 import { ABILITY_DB } from '../../constants';
-import { Sword, ChevronLeft, ChevronRight, FlaskConical, Scroll, HelpCircle, Lock, Shield, Heart, Ghost, Footprints } from 'lucide-react';
+import { ChevronLeft, ChevronRight, HelpCircle, Lock } from 'lucide-react';
+import { GiBroadsword } from 'react-icons/gi';
 import { renderIcon } from '../../render/icons';
 
 interface Props {
@@ -79,11 +80,7 @@ const BottomControls: React.FC<Props> = ({
                     <div className="flex gap-0.5 mt-0.5 flex-wrap">
                         {buffs.map((buff, i) => (
                             <div key={i} className="bg-gray-800 border border-gray-600 rounded flex items-center justify-center relative" style={{ width: 'clamp(8px, 2vmin, 12px)', height: 'clamp(8px, 2vmin, 12px)' }} title={buff.name}>
-                                {buff.icon === 'Shield' && <Shield size={7} className="text-cyan-400" />}
-                                {buff.icon === 'Heart' && <Heart size={7} className="text-red-400" />}
-                                {buff.icon === 'Ghost' && <Ghost size={7} className="text-white" />}
-                                {buff.icon === 'Footprints' && <Footprints size={7} className="text-green-400" />}
-                                {buff.icon === 'Scroll' && <Scroll size={7} className="text-yellow-400" />}
+                                {buff.icon && renderIcon(buff.icon, 7, buff.icon === 'Shield' ? 'text-cyan-400' : buff.icon === 'Heart' ? 'text-red-400' : buff.icon === 'Ghost' ? 'text-white' : buff.icon === 'Footprints' ? 'text-green-400' : buff.icon === 'Scroll' ? 'text-yellow-400' : 'text-white')}
                                 {buff.charges && <span className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full px-0.5 leading-tight font-bold" style={{ fontSize: '5px' }}>{buff.charges}</span>}
                                 {buff.barrierHp !== undefined && <span className="absolute -bottom-1 -right-1 bg-cyan-600 rounded-full px-0.5 leading-tight font-bold" style={{ fontSize: '5px' }}>{Math.ceil(buff.barrierHp)}</span>}
                             </div>
@@ -112,7 +109,7 @@ const BottomControls: React.FC<Props> = ({
                         style={{ width: 'clamp(26px, 7vmin, 36px)', height: 'clamp(26px, 7vmin, 36px)' }}
                         aria-label="Use Item 1"
                     >
-                        {equippedUsable1 ? (equippedUsable1.icon === 'FlaskConical' ? <FlaskConical size={14} className="text-red-400" /> : <Scroll size={14} className="text-blue-400" />) : <HelpCircle size={14} className="text-gray-500" />}
+                        {equippedUsable1 ? (equippedUsable1.icon ? renderIcon(equippedUsable1.icon, 14, 'text-red-400') : <HelpCircle size={14} className="text-gray-500" />) : <HelpCircle size={14} className="text-gray-500" />}
                         <span className="absolute top-0 left-0 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '7px', padding: '0px 2px' }}>U</span>
                         <div ref={el => { if (el) cooldownRefs.current['usable1'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80" style={{ height: '0%', opacity: 0 }}></div>
                     </button>
@@ -123,7 +120,7 @@ const BottomControls: React.FC<Props> = ({
                         style={{ width: 'clamp(26px, 7vmin, 36px)', height: 'clamp(26px, 7vmin, 36px)' }}
                         aria-label="Use Item 2"
                     >
-                        {equippedUsable2 ? (equippedUsable2.icon === 'FlaskConical' ? <FlaskConical size={14} className="text-red-400" /> : <Scroll size={14} className="text-blue-400" />) : <HelpCircle size={14} className="text-gray-500" />}
+                        {equippedUsable2 ? (equippedUsable2.icon ? renderIcon(equippedUsable2.icon, 14, 'text-red-400') : <HelpCircle size={14} className="text-gray-500" />) : <HelpCircle size={14} className="text-gray-500" />}
                         <span className="absolute top-0 left-0 text-gray-400 bg-black/80 rounded font-bold" style={{ fontSize: '7px', padding: '0px 2px' }}>I</span>
                         <div ref={el => { if (el) cooldownRefs.current['usable2'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80" style={{ height: '0%', opacity: 0 }}></div>
                     </button>
@@ -167,7 +164,7 @@ const BottomControls: React.FC<Props> = ({
                     style={{ width: 'clamp(42px, 11vmin, 64px)', height: 'clamp(42px, 11vmin, 64px)', boxShadow: '0 0 15px rgba(220,38,38,0.5)' }}
                     aria-label="Attack"
                 >
-                    <Sword size={24} className="text-white drop-shadow-lg" />
+                    <GiBroadsword size={24} className="text-white drop-shadow-lg" />
                     <span className="absolute top-0 right-0 text-red-200 font-bold bg-black/80 rounded" style={{ fontSize: '7px', padding: '0px 2px' }}>H</span>
                     <div ref={el => { if (el) cooldownRefs.current['auto_attack'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80 pointer-events-none" style={{ height: '0%', opacity: 0 }}></div>
                 </button>

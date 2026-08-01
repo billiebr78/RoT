@@ -13,7 +13,8 @@ import {
 } from '../game/mapData';
 import { MapState, MapCellState, createInitialMapState } from '../game/mapState';
 import { getHp } from '../constants';
-import { User, Heart, Map as MapIcon, LogOut } from 'lucide-react';
+import { User, Map as MapIcon, LogOut } from 'lucide-react';
+import { GiHealthPotion } from 'react-icons/gi';
 
 interface Props {
     character: Character;
@@ -261,7 +262,7 @@ const MapView: React.FC<Props> = ({
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                     <div className="text-right">
                         <div className="text-[10px] sm:text-xs text-medieval-400 flex items-center gap-1 justify-end">
-                            <Heart size={10} className="text-red-500" fill="currentColor"/>
+                            <GiHealthPotion size={10} className="text-red-500" />
                             HP
                         </div>
                         <div className="font-bold text-xs sm:text-sm">{Math.floor(character.currentHp || 0)}/{getHp(calculateTotalStats(character)[Attribute.HT])}</div>

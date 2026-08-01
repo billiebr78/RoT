@@ -6,7 +6,6 @@ import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getE
 import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES, ARENA_WIDTH, FLEE_ZONE_WIDTH, PLAYER_SPAWN_X, ENEMY_SPAWN_X } from '../render/canvas';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
-import { Shield, Sword, ChevronLeft, ChevronRight, FlaskConical, Scroll, HelpCircle, Lock, Heart, Ghost, Footprints } from 'lucide-react';
 
 interface Props {
   character: Character;

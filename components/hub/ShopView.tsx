@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { Item } from '../../types';
-import { Store, Map } from 'lucide-react';
+import { Map } from 'lucide-react';
+import { GiShop } from 'react-icons/gi';
 import { InventoryItem } from './itemComponents';
 
 interface Props {
@@ -22,8 +23,8 @@ const ShopView: React.FC<Props> = ({ title, gold, items, stash, onItemClick, onI
         <div className="flex-1 p-3 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-6 overflow-y-auto">
             <div className="flex sm:flex-col gap-3 sm:gap-4 sm:w-1/4 shrink-0">
                 <div className="bg-medieval-800 border-2 border-medieval-500 p-3 sm:p-4 rounded text-center flex-1 sm:flex-none">
-                    <Store size={32} className="mx-auto text-medieval-300 mb-1 sm:mb-2 sm:hidden" />
-                    <Store size={48} className="mx-auto text-medieval-300 mb-2 hidden sm:block" />
+                    <GiShop size={32} className="mx-auto text-medieval-300 mb-1 sm:mb-2 sm:hidden" />
+                    <GiShop size={48} className="mx-auto text-medieval-300 mb-2 hidden sm:block" />
                     <h2 className="text-lg sm:text-2xl font-serif text-medieval-200">{title}</h2>
                     <p className="text-xs text-medieval-400 hidden sm:block">Best goods for miles.</p>
                 </div>

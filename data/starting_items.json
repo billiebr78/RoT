@@ -1,0 +1,65 @@
+{
+  "Warrior": [
+    {
+      "id": "w_start_sword",
+      "name": "Rusty Sword",
+      "slot": "main_hand",
+      "rarity": "common",
+      "damage": 5,
+      "value": 10,
+      "stats": {},
+      "weaponType": "SLASH"
+    },
+    {
+      "id": "w_start_chest",
+      "name": "Worn Tunic",
+      "slot": "chest",
+      "rarity": "common",
+      "armor": 2,
+      "value": 5,
+      "stats": {}
+    }
+  ],
+  "Mage": [
+    {
+      "id": "m_start_wand",
+      "name": "Old Stick",
+      "slot": "main_hand",
+      "rarity": "common",
+      "damage": 3,
+      "stats": { "INT": 1 },
+      "value": 10,
+      "weaponType": "MAGIC"
+    },
+    {
+      "id": "m_start_robe",
+      "name": "Tattered Robe",
+      "slot": "chest",
+      "rarity": "common",
+      "armor": 1,
+      "value": 5,
+      "stats": {}
+    }
+  ],
+  "Rogue": [
+    {
+      "id": "r_start_dagger",
+      "name": "Chipped Dagger",
+      "slot": "main_hand",
+      "rarity": "common",
+      "damage": 4,
+      "value": 10,
+      "stats": { "DX": 1 },
+      "weaponType": "SLASH"
+    },
+    {
+      "id": "r_start_boots",
+      "name": "Leather Boots",
+      "slot": "legs",
+      "rarity": "common",
+      "armor": 1,
+      "value": 5,
+      "stats": {}
+    }
+  ]
+}

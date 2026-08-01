@@ -3,7 +3,8 @@
 import React from 'react';
 import { Character, Attribute } from '../../types';
 import { getExpForLevel, getHp } from '../../constants';
-import { User, Heart } from 'lucide-react';
+import { User } from 'lucide-react';
+import { GiHealthPotion } from 'react-icons/gi';
 
 interface Props {
     character: Character;
@@ -42,8 +43,8 @@ const HubHeader: React.FC<Props> = ({ character, localHp, maxHp, showHealButton,
                 <div className="text-right">
                     <div className="text-[10px] sm:text-xs text-medieval-400">Health</div>
                     <div className="font-bold text-sm sm:text-lg flex items-center justify-end gap-1 sm:gap-2">
-                        <Heart size={14} className="text-red-500 sm:hidden" fill="currentColor"/>
-                        <Heart size={16} className="text-red-500 hidden sm:block" fill="currentColor"/>
+                        <GiHealthPotion size={14} className="text-red-500 sm:hidden" />
+                        <GiHealthPotion size={16} className="text-red-500 hidden sm:block" />
                         {Math.floor(localHp)}/{maxHp}
                     </div>
                 </div>

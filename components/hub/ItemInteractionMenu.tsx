@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Item, ItemSlot } from '../../types';
-import { Check, Store, Backpack, X } from 'lucide-react';
+import { Check, Backpack, X } from 'lucide-react';
+import { GiShop } from 'react-icons/gi';
 
 export type InteractionContext = 'inventory' | 'equipped' | 'shop' | 'sell_confirm';
 
@@ -66,7 +67,7 @@ const ItemInteractionMenu: React.FC<Props> = ({
                                     <button onClick={() => onEquipToSlot(item, ItemSlot.OFF_HAND)} className="p-3 hover:bg-medieval-700 text-left text-sm flex gap-2 pl-6 text-xs text-medieval-300">To Off Hand</button>
                                 </>
                             )}
-                            <button onClick={onSellInitiate} className="p-3 hover:bg-red-900/50 text-left text-sm text-red-300 flex gap-2"><Store size={16}/> Sell</button>
+                            <button onClick={onSellInitiate} className="p-3 hover:bg-red-900/50 text-left text-sm text-red-300 flex gap-2"><GiShop size={16}/> Sell</button>
                         </>
                     )}
 
@@ -75,7 +76,7 @@ const ItemInteractionMenu: React.FC<Props> = ({
                     )}
 
                     {context === 'shop' && (
-                        <button onClick={() => onBuy(item)} className="p-3 hover:bg-green-900/50 text-left text-sm text-green-300 flex gap-2"><Store size={16}/> Buy</button>
+                        <button onClick={() => onBuy(item)} className="p-3 hover:bg-green-900/50 text-left text-sm text-green-300 flex gap-2"><GiShop size={16}/> Buy</button>
                     )}
                 </>
             )}

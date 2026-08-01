@@ -2,7 +2,10 @@
 
 import React from 'react';
 import { Item, ItemSlot } from '../../types';
-import { Shirt, Sword, Shield, Gem, User, Activity, Backpack, FlaskConical, Book, Hammer, Zap, Scroll, Wand } from 'lucide-react';
+import { Shirt, Gem, User, Activity, Backpack } from 'lucide-react';
+import { GiBroadsword, GiShield, GiBubblingFlask } from 'react-icons/gi';
+import type { IconType } from 'react-icons';
+import { renderIcon } from '../../render/icons';
 
 // Color helper for item name based on rarity.
 export const rarityTextClass = (rarity: Item['rarity']): string => {
@@ -70,14 +73,14 @@ interface SlotIconProps {
 
 export const SlotIcon: React.FC<SlotIconProps> = ({ slot, item, onClick, onMouseEnter, onMouseLeave, label }) => {
     // Default icon for empty slot, based on the slot itself.
-    let DefaultIcon = Backpack;
+    let DefaultIcon: IconType = Backpack;
     if (slot === ItemSlot.HEAD) DefaultIcon = User;
     if (slot === ItemSlot.CHEST) DefaultIcon = Shirt;
-    if (slot === ItemSlot.MAIN_HAND || slot === ItemSlot.OFF_HAND) DefaultIcon = Sword;
+    if (slot === ItemSlot.MAIN_HAND || slot === ItemSlot.OFF_HAND) DefaultIcon = GiBroadsword;
     if (slot === ItemSlot.RING1 || slot === ItemSlot.RING2 || slot === ItemSlot.NECK) DefaultIcon = Gem;
     if (slot === ItemSlot.LEGS) DefaultIcon = Activity;
-    if (slot === ItemSlot.HANDS) DefaultIcon = Shield;
-    if (slot === ItemSlot.USABLE1 || slot === ItemSlot.USABLE2) DefaultIcon = FlaskConical;
+    if (slot === ItemSlot.HANDS) DefaultIcon = GiShield;
+    if (slot === ItemSlot.USABLE1 || slot === ItemSlot.USABLE2) DefaultIcon = GiBubblingFlask;
 
     return (
         <div
@@ -91,13 +94,7 @@ export const SlotIcon: React.FC<SlotIconProps> = ({ slot, item, onClick, onMouse
             }`}
         >
             {item ? (
-                item.icon === 'Scroll' ? <Scroll size={20} className="text-white" /> :
-                item.icon === 'FlaskConical' ? <FlaskConical size={20} className="text-white" /> :
-                item.icon === 'Shield' ? <Shield size={20} className="text-white" /> :
-                item.icon === 'Book' ? <Book size={20} className="text-white" /> :
-                item.icon === 'Hammer' ? <Hammer size={20} className="text-white" /> :
-                item.icon === 'Wand' ? <Wand size={20} className="text-white" /> :
-                item.icon === 'Zap' ? <Zap size={20} className="text-white" /> :
+                item.icon ? renderIcon(item.icon, 20, 'text-white') :
                 <span className={`text-[10px] text-center font-bold leading-tight ${item.rarity === 'mythic' ? 'text-fuchsia-200' : 'text-white'}`}>
                     {item.name.split(' ')[1] || item.name}
                 </span>

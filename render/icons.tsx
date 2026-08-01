@@ -1,25 +1,52 @@
 // Shared icon renderer — used by GameLoop (abilities) and BottomControls.
+// Game-themed icons come from react-icons/gi (Game Icons project).
+// We keep the string-based API (iconName: string) so JSON data files
+// (abilities.json, items.json) can reference icons by name without
+// needing to import React components.
 import React from 'react';
-import { Sword, Shield, Zap, Heart, Skull, Ghost, Footprints, Crosshair, Wind, Flame, Droplets, Book, Hammer, Wand, Tornado } from 'lucide-react';
+import {
+  GiBroadsword,
+  GiShield,
+  GiHeavyLightning,
+  GiHealthPotion,
+  GiDeathSkull,
+  GiGhost,
+  GiFootprint,
+  GiCrosshair,
+  GiWhirlwind,
+  GiFire,
+  GiWaterDrop,
+  GiBlackBook,
+  GiFlatHammer,
+  GiFairyWand,
+  GiTornado,
+  GiTiedScroll,
+  GiBubblingFlask,
+} from 'react-icons/gi';
+import type { IconType } from 'react-icons';
+
+const ICONS: Record<string, IconType> = {
+  Sword: GiBroadsword,
+  Shield: GiShield,
+  Zap: GiHeavyLightning,
+  Heart: GiHealthPotion,
+  Skull: GiDeathSkull,
+  Ghost: GiGhost,
+  Footprints: GiFootprint,
+  Crosshair: GiCrosshair,
+  Hurricane: GiTornado,
+  Tornado: GiTornado,
+  Wind: GiWhirlwind,
+  Flame: GiFire,
+  Droplets: GiWaterDrop,
+  Book: GiBlackBook,
+  Hammer: GiFlatHammer,
+  Wand: GiFairyWand,
+  Scroll: GiTiedScroll,
+  FlaskConical: GiBubblingFlask,
+};
 
 export const renderIcon = (iconName: string, size: number = 24, className: string = '') => {
-    switch (iconName) {
-        case 'Sword': return <Sword size={size} className={className} />;
-        case 'Shield': return <Shield size={size} className={className} />;
-        case 'Zap': return <Zap size={size} className={className} />;
-        case 'Heart': return <Heart size={size} className={className} />;
-        case 'Skull': return <Skull size={size} className={className} />;
-        case 'Ghost': return <Ghost size={size} className={className} />;
-        case 'Footprints': return <Footprints size={size} className={className} />;
-        case 'Crosshair': return <Crosshair size={size} className={className} />;
-        case 'Hurricane': return <Tornado size={size} className={className} />;
-        case 'Tornado': return <Tornado size={size} className={className} />;
-        case 'Wind': return <Wind size={size} className={className} />;
-        case 'Flame': return <Flame size={size} className={className} />;
-        case 'Droplets': return <Droplets size={size} className={className} />;
-        case 'Book': return <Book size={size} className={className} />;
-        case 'Hammer': return <Hammer size={size} className={className} />;
-        case 'Wand': return <Wand size={size} className={className} />;
-        default: return <Zap size={size} className={className} />;
-    }
+  const Icon = ICONS[iconName] ?? GiHeavyLightning;
+  return <Icon size={size} className={className} />;
 };

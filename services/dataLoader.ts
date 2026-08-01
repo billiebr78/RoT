@@ -2,13 +2,15 @@
 // This replaces the inline data in constants.ts with external JSON files
 // that are easier to edit and maintain.
 
-import { Ability, AbilityTree, AbilityType, AbilityStyle, Attribute, EnemyAbility, EnemyArchetype, WeaponType, OffHandType } from '../types';
+import { Ability, AbilityTree, AbilityType, AbilityStyle, Attribute, ClassType, EnemyAbility, EnemyArchetype, Item, ItemSlot, OffHandType, Palette, SpriteFrame, WeaponType } from '../types';
 import enemiesJson from '../data/enemies.json';
 import enemyAbilitiesJson from '../data/enemy_abilities.json';
 import archetypesJson from '../data/archetypes.json';
 import abilitiesJson from '../data/abilities.json';
 import itemNamesJson from '../data/item_names.json';
 import itemsJson from '../data/items.json';
+import startingItemsJson from '../data/starting_items.json';
+import spritesJson from '../data/sprites.json';
 
 // === Attribute string → enum mapping ===
 const ATTR_MAP: Record<string, Attribute> = {
@@ -159,3 +161,61 @@ export const WEAPON_TEMPLATES = (itemsJson as any).weapons.map((w: any) => ({
 
 export const POTION_DB = (itemsJson as any).potions;
 export const SCROLL_DB = (itemsJson as any).scrolls;
+
+// === Starting items (per class) ===
+// JSON keys are class names ('Warrior', 'Mage', 'Rogue') which match ClassType
+// enum values. Item slot is a string ('main_hand', 'chest', 'legs') matching
+// ItemSlot enum values. WeaponType is mapped via WEAPON_TYPE_MAP.
+
+const ITEM_SLOT_MAP: Record<string, ItemSlot> = {
+  'head': ItemSlot.HEAD,
+  'chest': ItemSlot.CHEST,
+  'hands': ItemSlot.HANDS,
+  'legs': ItemSlot.LEGS,
+  'neck': ItemSlot.NECK,
+  'ring1': ItemSlot.RING1,
+  'ring2': ItemSlot.RING2,
+  'main_hand': ItemSlot.MAIN_HAND,
+  'off_hand': ItemSlot.OFF_HAND,
+  'usable1': ItemSlot.USABLE1,
+  'usable2': ItemSlot.USABLE2,
+};
+
+const CLASS_TYPE_MAP: Record<string, ClassType> = {
+  'Warrior': ClassType.WARRIOR,
+  'Mage': ClassType.MAGE,
+  'Rogue': ClassType.ROGUE,
+};
+
+const convertItem = (item: any): Item => ({
+  ...item,
+  slot: ITEM_SLOT_MAP[item.slot] ?? ItemSlot.CHEST,
+  weaponType: item.weaponType ? WEAPON_TYPE_MAP[item.weaponType] : undefined,
+  offHandType: item.offHandType ? OFFHAND_TYPE_MAP[item.offHandType] : undefined,
+  stats: item.stats ? convertStats(item.stats) : {},
+});
+
+export const STARTING_ITEMS: Record<ClassType, Item[]> = Object.fromEntries(
+  Object.entries(startingItemsJson as Record<string, any[]>).map(
+    ([className, items]) => [CLASS_TYPE_MAP[className], items.map(convertItem)]
+  )
+) as Record<ClassType, Item[]>;
+
+// === Sprites & palettes ===
+// JSON stores { palettes, paletteVariants, sprites }. Each sprite stores
+// only its `rows`; we attach the shared `palettes` object to satisfy the
+// SpriteFrame interface.
+
+export const PALETTES: Palette = (spritesJson as any).palettes as Palette;
+
+export const PALETTE_VARIANTS: Record<string, Partial<Record<string, string>>> =
+  (spritesJson as any).paletteVariants as Record<string, Partial<Record<string, string>>>;
+
+export const SPRITE_LIBRARY: Record<string, SpriteFrame> = Object.fromEntries(
+  Object.entries((spritesJson as any).sprites).map(
+    ([key, def]: [string, any]) => [key, {
+      rows: def.rows as string[],
+      palette: PALETTES,
+    } as SpriteFrame]
+  )
+);

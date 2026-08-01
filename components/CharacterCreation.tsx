@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Attribute, Character, ClassType, ItemSlot } from '../types';
 import { BASE_ATTRIBUTE_VALUE, BONUS_ATTRIBUTE_VALUE, CLASS_BONUS, STARTING_ITEMS } from '../constants';
-import { Shield, Sword, Wand, Dices, ChevronRight, ArrowLeft, Crosshair } from 'lucide-react';
+import { Dices, ChevronRight, ArrowLeft } from 'lucide-react';
+import { GiBroadsword, GiFairyWand, GiCrosshair } from 'react-icons/gi';
 
 interface Props {
   onCharacterCreated: (char: Character) => void;
@@ -133,9 +134,9 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
                         : 'bg-medieval-900 border-medieval-600 text-medieval-500 hover:bg-medieval-800'
                     }`}
                   >
-                    {c === ClassType.WARRIOR && <Sword size={32} />}
-                    {c === ClassType.MAGE && <Wand size={32} />}
-                    {c === ClassType.ROGUE && <Crosshair size={32} />}
+                    {c === ClassType.WARRIOR && <GiBroadsword size={32} />}
+                    {c === ClassType.MAGE && <GiFairyWand size={32} />}
+                    {c === ClassType.ROGUE && <GiCrosshair size={32} />}
                     <span className="mt-2 font-bold text-xs">{c}</span>
                   </button>
                 ))}

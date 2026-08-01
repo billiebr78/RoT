@@ -8,7 +8,8 @@ import MapView from './components/MapView';
 import { calculateTotalStats } from './services/engine';
 import { getHp } from './constants';
 import { PLAYER_START } from './game/mapData';
-import { Sword, Upload, ArrowLeft, Trash2 } from 'lucide-react';
+import { Upload, ArrowLeft, Trash2 } from 'lucide-react';
+import { GiBroadsword } from 'react-icons/gi';
 
 type GameScreen = 'splash' | 'create' | 'hub' | 'map' | 'game' | 'dead';
 type SplashView = 'main' | 'load';
@@ -147,7 +148,7 @@ const App: React.FC = () => {
                       disabled={saveSlots.length >= 3}
                       className="w-full py-3 sm:py-5 bg-medieval-700 hover:bg-medieval-600 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-medieval-400 rounded text-base sm:text-xl font-bold transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105"
                     >
-                      <Sword className="fill-current" /> New Game
+                      <GiBroadsword className="fill-current" /> New Game
                     </button>
 
                     <button 
