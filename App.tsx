@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [pendingEnemy, setPendingEnemy] = useState<Enemy | null>(null);
   const [mapPrevPos, setMapPrevPos] = useState<{ row: number; col: number } | null>(null);
   const [combatResult, setCombatResult] = useState<'win' | 'flee' | 'enemyFled' | null>(null);
+  const [restHealInfo, setRestHealInfo] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('rot_saves');
@@ -242,6 +243,29 @@ const App: React.FC = () => {
               setPendingEnemy(null);
               setScreen('map');
           }}
+          onRest={(updatedChar, healAmount) => {
+              saveGame(updatedChar);
+              // Advance 5 turns on the map (decrement cooldowns 5 times)
+              try {
+                  const saved = localStorage.getItem('rot_map_state');
+                  if (saved) {
+                      const mapState = JSON.parse(saved);
+                      for (let i = 0; i < 5; i++) {
+                          for (let r = 0; r < 16; r++) {
+                              for (let c = 0; c < 16; c++) {
+                                  if (mapState.cells[r][c].clearedTurnsRemaining > 0) {
+                                      mapState.cells[r][c].clearedTurnsRemaining--;
+                                  }
+                              }
+                          }
+                      }
+                      localStorage.setItem('rot_map_state', JSON.stringify(mapState));
+                  }
+              } catch (e) { /* ignore */ }
+              setRestHealInfo(healAmount);
+              setPendingEnemy(null);
+              setScreen('map');
+          }}
           onDeath={handleDeath}
         />
       )}
@@ -257,6 +281,25 @@ const App: React.FC = () => {
             >
               Return to Town [J]
             </button>
+        </div>
+      )}
+
+      {/* Rest heal dialog */}
+      {restHealInfo !== null && screen === 'map' && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setRestHealInfo(null)}>
+          <div className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl p-6 text-center max-w-xs">
+            <h2 className="font-serif text-xl text-emerald-300 mb-2">You Rested</h2>
+            <p className="text-medieval-200 text-sm mb-4">
+              You recovered <span className="font-bold text-emerald-400">{restHealInfo} HP</span> over 5 turns.
+            </p>
+            <p className="text-medieval-400 text-xs mb-4">Nearby areas may have respawned enemies.</p>
+            <button
+              onClick={() => setRestHealInfo(null)}
+              className="px-6 py-2 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded border border-medieval-500 text-sm"
+            >
+              Continue
+            </button>
+          </div>
         </div>
       )}
     </div>

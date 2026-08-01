@@ -1,6 +1,6 @@
 import React from 'react';
 import { Item } from '../../types';
-import { Trophy, Map, ChevronsRight, Footprints, AlertTriangle } from 'lucide-react';
+import { Trophy, Bed, ChevronsRight, Footprints, AlertTriangle } from 'lucide-react';
 
 interface BattleSummaryData {
     show: boolean;
@@ -14,23 +14,22 @@ interface BattleSummaryData {
 
 interface Props {
     summary: BattleSummaryData | null;
-    onExit: () => void;
+    onRest: () => void;
     onContinue: () => void;
+    restHealAmount: number;
 }
 
-const BattleSummary: React.FC<Props> = ({ summary, onExit, onContinue }) => {
+const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealAmount }) => {
     if (!summary) return null;
 
     const outcome = summary.outcome || 'victory';
 
-    // === Outcome-specific content ===
     let icon: React.ReactNode;
     let title: string;
     let titleColor: string;
     let subtitle: React.ReactNode = null;
     let showRewards = true;
-    let showNextButton = true;
-    let showTownOnly = false;
+    let showButtons = true;
 
     if (outcome === 'victory') {
         icon = <Trophy className="text-yellow-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
@@ -47,7 +46,6 @@ const BattleSummary: React.FC<Props> = ({ summary, onExit, onContinue }) => {
         );
         showRewards = false;
     } else {
-        // playerFled
         icon = <Footprints className="text-blue-400 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
         title = 'You Escaped';
         titleColor = 'text-blue-200';
@@ -62,11 +60,15 @@ const BattleSummary: React.FC<Props> = ({ summary, onExit, onContinue }) => {
                         XP penalty: -{summary.xpPenalty}
                     </div>
                 )}
+                {summary.xpPenalty === 0 && (
+                    <div className="text-cyan-300 text-center" style={{ fontSize: 'clamp(11px, 2.8vmin, 14px)' }}>
+                        Bravery spent — no XP penalty
+                    </div>
+                )}
             </div>
         );
         showRewards = false;
-        showNextButton = false;
-        showTownOnly = true;
+        showButtons = false;
     }
 
     return (
@@ -75,7 +77,6 @@ const BattleSummary: React.FC<Props> = ({ summary, onExit, onContinue }) => {
                 className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl text-center relative overflow-hidden"
                 style={{ width: 'min(92%, 380px)', padding: 'clamp(16px, 4vmin, 32px)' }}
             >
-                {/* Level up glow background — only for victory with level up */}
                 {outcome === 'victory' && summary.isLevelUp && (
                     <div
                         className="absolute inset-0 pointer-events-none"
@@ -133,28 +134,42 @@ const BattleSummary: React.FC<Props> = ({ summary, onExit, onContinue }) => {
                     </div>
                 )}
 
-                {!showRewards && (
-                    <div className="mb-5 relative z-10" />
+                {!showRewards && <div className="mb-5 relative z-10" />}
+
+                {/* Player fled: only "Map" button */}
+                {!showButtons && (
+                    <div className="relative z-10">
+                        <button
+                            onClick={onContinue}
+                            className="w-full py-2 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-medieval-500 active:scale-95 transition-transform"
+                            style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
+                        >
+                            <ChevronsRight size={16} /> Map
+                        </button>
+                    </div>
                 )}
 
-                <div className="flex gap-2 relative z-10">
-                    <button
-                        onClick={onExit}
-                        className={`${showTownOnly ? 'flex-1' : 'flex-1'} py-2 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-medieval-500 active:scale-95 transition-transform`}
-                        style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
-                    >
-                        <Map size={16} /> Town [J]
-                    </button>
-                    {showNextButton && (
+                {/* Victory/enemyFled: Rest + Journey Onward */}
+                {showButtons && (
+                    <div className="flex gap-2 relative z-10">
+                        <button
+                            onClick={onRest}
+                            className="flex-1 py-2 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded flex flex-col items-center justify-center gap-0.5 border border-blue-600 active:scale-95 transition-transform"
+                            style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
+                        >
+                            <Bed size={16} />
+                            <span>Rest</span>
+                            <span className="text-blue-300 text-[10px]" style={{ fontSize: 'clamp(8px, 2vmin, 10px)' }}>+{restHealAmount} HP (5 turns)</span>
+                        </button>
                         <button
                             onClick={onContinue}
                             className="flex-1 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-emerald-600 active:scale-95 transition-transform"
                             style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
                         >
-                            Map [H] <ChevronsRight size={16} />
+                            Journey Onward <ChevronsRight size={16} />
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

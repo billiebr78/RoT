@@ -4,7 +4,6 @@ import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, Enem
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
 import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction, SPRITE_LIBRARY, ARCHETYPE_BEHAVIORS, BOSS_FLEE_THRESHOLD } from '../constants';
 import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES, ARENA_WIDTH, FLEE_ZONE_WIDTH, PLAYER_SPAWN_X, ENEMY_SPAWN_X } from '../render/canvas';
-import TopHUD from './game/TopHUD';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
 import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Wand } from 'lucide-react';
@@ -14,6 +13,7 @@ interface Props {
   onExit: (updatedChar: Character, result?: 'win' | 'flee' | 'enemyFled') => void;
   onDeath: () => void;
   presetEnemy?: Enemy | null;
+  onRest?: (updatedChar: Character, healAmount: number) => void;
 }
 
 const PLAYER_SPEED = 2.5;
@@ -50,7 +50,7 @@ interface VisualEffect {
     size: number;
 }
 
-const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy }) => {
+const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, onRest }) => {
   const playerHpBarRef = useRef<HTMLDivElement>(null);
   const playerHpTextRef = useRef<HTMLSpanElement>(null);
   const enemyHpBarRef = useRef<HTMLDivElement>(null);
@@ -1692,9 +1692,18 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy }) 
   };
 
   const handleContinueJourney = () => {
-      // In the map system, "Next" returns to the map (same as "Town").
-      // Both buttons call handleExit, which passes the combat result to App.
       handleExit();
+  };
+
+  // Rest: heal HT * 1.2 HP, advance 5 turns on the map.
+  const handleRest = () => {
+      if (!onRest) return;
+      const stats = calculateTotalStats(characterRef.current);
+      const healAmount = Math.floor(stats[Attribute.HT] * 1.2);
+      const updatedChar = { ...calculateExitState() };
+      const maxHp = getHp(stats[Attribute.HT]);
+      updatedChar.currentHp = Math.min(maxHp, (updatedChar.currentHp || 0) + healAmount);
+      onRest(updatedChar, healAmount);
   };
 
   const calculateExitState = () => {
@@ -1773,19 +1782,6 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy }) 
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col overflow-y-auto select-none touch-none">
-      <TopHUD
-        character={character}
-        stage={hudStatic.stage}
-        enemyName={hudStatic.enemyName}
-        enemyMaxHp={hudStatic.enemyMaxHp}
-        buffs={hudStatic.buffs}
-        playerHpBarRef={playerHpBarRef}
-        playerHpTextRef={playerHpTextRef}
-        enemyHpBarRef={enemyHpBarRef}
-        enemyContainerRef={enemyContainerRef}
-        onExit={handleExit}
-      />
-
       <div className="flex-1 flex items-center justify-center min-h-[280px] relative overflow-hidden">
         <canvas
           ref={canvasRef}
@@ -1800,30 +1796,31 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy }) 
         />
         <BattleSummary
           summary={battleSummary}
-          onExit={handleExit}
+          onRest={handleRest}
           onContinue={handleContinueJourney}
+          restHealAmount={Math.floor(calculateTotalStats(characterRef.current)[Attribute.HT] * 1.2)}
         />
       </div>
 
       <BottomControls
+        character={character}
+        enemyName={hudStatic.enemyName}
+        enemyMaxHp={hudStatic.enemyMaxHp}
+        buffs={hudStatic.buffs}
         equippedUsable1={hudStatic.equippedUsable1}
         equippedUsable2={hudStatic.equippedUsable2}
         activeAbilities={activeAbilities}
         cooldownRefs={cooldownRefs}
+        playerHpBarRef={playerHpBarRef}
+        playerHpTextRef={playerHpTextRef}
+        enemyHpBarRef={enemyHpBarRef}
+        enemyContainerRef={enemyContainerRef}
         onMoveLeft={(pressed) => setKey('ArrowLeft', pressed)}
         onMoveRight={(pressed) => setKey('ArrowRight', pressed)}
         onAttack={handleManualAttack}
         onAbility={handleAbilityUse}
         onUseItem={handleConsumeItem}
       />
-
-      {/* Keyboard help text - faint and centered */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-medieval-500 opacity-20 pointer-events-none whitespace-nowrap"
-        style={{ fontSize: '10px' }}
-      >
-        [A/D] Move • [H] Attack • [J,K,L] Skills • [U,I] Items
-      </div>
     </div>
   );
 };
