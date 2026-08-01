@@ -209,8 +209,9 @@ const MapView: React.FC<Props> = ({
         }
     };
 
-    // Keyboard movement
+    // Keyboard movement — disabled when combat result is being processed
     useEffect(() => {
+        if (combatResult) return; // Don't capture keys while processing combat result
         const handleKey = (e: KeyboardEvent) => {
             if (e.code === 'ArrowUp' || e.code === 'KeyW') handleMove(playerPos.row - 1, playerPos.col);
             else if (e.code === 'ArrowDown' || e.code === 'KeyS') handleMove(playerPos.row + 1, playerPos.col);
@@ -219,7 +220,7 @@ const MapView: React.FC<Props> = ({
         };
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
-    }, [playerPos, mapState, character]);
+    }, [playerPos, mapState, character, combatResult]);
 
     const currentTerrain = MAP_TERRAIN[playerPos.row]?.[playerPos.col];
     const isInCity = currentTerrain === 'City';

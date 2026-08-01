@@ -6,7 +6,7 @@ import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getE
 import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES, ARENA_WIDTH, FLEE_ZONE_WIDTH, PLAYER_SPAWN_X, ENEMY_SPAWN_X } from '../render/canvas';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
-import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRight, Ghost, Footprints, Crosshair, Wind, Droplets, Flame, Book, Tornado, Skull, ArrowLeft, ChevronLeft, ChevronRight, FlaskConical, Map, Scroll, HelpCircle, Hammer, Wand } from 'lucide-react';
+import { Shield, Sword, ChevronLeft, ChevronRight, FlaskConical, Scroll, HelpCircle, Lock, Heart, Ghost, Footprints } from 'lucide-react';
 
 interface Props {
   character: Character;
@@ -21,7 +21,7 @@ const PLAYER_SPEED = 2.5;
 // Used as a reference unit for ability ranges (Dash distance, Aura Shield push).
 const CHARACTER_WIDTH = 60;
 
-type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING';
+type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING' | 'HEALING' | 'FLEEING';
 type PlayerState = 'IDLE' | 'MOVING' | 'ATTACKING' | 'DEFENDING' | 'CASTING';
 
 interface Projectile {
@@ -424,6 +424,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     state.currentAttackSpeed = Math.max(500, 1500 - (totalStats[Attribute.DX] * 34));
 
     state.animFrame++;
+    updateEnemyBuffs(dt);
     if (state.attackTimer > 0) state.attackTimer -= dt;
 
     if (Math.abs(state.playerVx) > 0.1) {
@@ -807,6 +808,44 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
   // ... (applyProjectileDamageToEnemy/Player, performEnemyAttack, handleEnemyAbility same)
   // Re-pasting existing logic functions to maintain file integrity
+  // Apply enemy defensive buffs (Stone Skin, Shield barrier) to incoming damage.
+  // Returns the reduced damage after all enemy defenses.
+  const applyEnemyDefense = (dmg: number): number => {
+      const state = gameState.current;
+      if (!state.enemy) return dmg;
+      let reduced = dmg;
+      // Stone Skin: 50% damage reduction while active
+      const stoneSkin = (state.enemy as any).stoneSkinTurns;
+      if (stoneSkin && stoneSkin > 0) {
+          reduced = Math.ceil(reduced * 0.5);
+      }
+      // Enemy barrier (Warlock Shield): absorbs damage
+      const enemyBarrier = (state.enemy as any).barrierHp;
+      if (enemyBarrier && enemyBarrier > 0) {
+          const absorbed = Math.min(reduced, enemyBarrier);
+          (state.enemy as any).barrierHp = enemyBarrier - absorbed;
+          reduced -= absorbed;
+          if (absorbed > 0) {
+              addFloatingText(state.enemyX, GROUND_Y - 120, `Shield -${absorbed}`, "purple");
+          }
+      }
+      return Math.max(0, reduced);
+  };
+
+  // Decrement Stone Skin timer each frame
+  const updateEnemyBuffs = (dt: number) => {
+      const state = gameState.current;
+      if (!state.enemy) return;
+      const stoneSkin = (state.enemy as any).stoneSkinTurns;
+      if (stoneSkin && stoneSkin > 0) {
+          (state.enemy as any).stoneSkinTurns = stoneSkin - dt;
+          if ((state.enemy as any).stoneSkinTurns <= 0) {
+              (state.enemy as any).stoneSkinTurns = 0;
+              addFloatingText(state.enemyX, GROUND_Y - 100, "Stone Skin faded", "gray");
+          }
+      }
+  };
+
   const applyProjectileDamageToEnemy = (p: Projectile, totalStats: Record<Attribute, number>) => {
       const state = gameState.current;
       if (!state.enemy) return;
@@ -815,12 +854,14 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
       const hasBackstabPassive = character.unlockedAbilities.includes('tactics_mastery');
       if (hasBackstabPassive && (state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT')) {
-          // Backstab scales with ability level: +30% / +45% / +60% at L1/L2/L3.
           const backstabLvl = character.abilityLevels?.['tactics_mastery'] || 1;
           const backstabMult = 1 + (0.15 + (backstabLvl - 1) * 0.15);
           finalDmg *= backstabMult;
           addFloatingText(state.enemyX, GROUND_Y - 140, "Backstab!", "red");
       }
+
+      // Apply enemy defensive buffs (Stone Skin, Shield)
+      finalDmg = applyEnemyDefense(finalDmg);
 
       const isEnemyAttacking = state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'CASTING';
       const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT';
@@ -1019,6 +1060,18 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
       } else if (ability.effect === 'ranged') {
            spawnProjectile('enemy', state.enemyX - 20, GROUND_Y - 50, state.playerX, baseDmg, false, 'cyan', 'damage');
+      } else if (ability.effect === 'buff') {
+           // Stone Skin (Golem): +50% armor buff for 10 seconds
+           addFloatingText(state.enemyX, GROUND_Y - 120, "Stone Skin!", "gray");
+           addVFX('BUFF', state.enemyX, GROUND_Y, "gray");
+           // Store as a flag on the enemy for damage reduction in performEnemyAttack
+           (state.enemy as any).stoneSkinTurns = 10000; // 10 seconds in ms
+      } else if (ability.effect === 'barrier') {
+           // Shield (Warlock): creates a barrier equal to half of enemy's max HP
+           const barrierHp = Math.floor(state.enemy.maxHp * 0.5);
+           (state.enemy as any).barrierHp = barrierHp;
+           addFloatingText(state.enemyX, GROUND_Y - 120, `Shield +${barrierHp}`, "purple");
+           addVFX('BUFF', state.enemyX, GROUND_Y, "purple");
       }
   };
 
@@ -1261,9 +1314,10 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
                    addFloatingText(state.enemyX, GROUND_Y - 60, `-${blockedDmg}`, "gray");
                    addVFX('IMPACT', state.enemyX, GROUND_Y - 40, "blue");
                } else {
-                   state.enemy.hp -= Math.floor(result.damage);
+                   const mitigated = applyEnemyDefense(result.damage);
+                   state.enemy.hp -= Math.floor(mitigated);
                    applyKnockback('enemy', 1.5);
-                   addFloatingText(state.enemyX, GROUND_Y - 80, Math.floor(result.damage).toString(), result.isCrit ? "yellow" : "white");
+                   addFloatingText(state.enemyX, GROUND_Y - 80, Math.floor(mitigated).toString(), result.isCrit ? "yellow" : "white");
                    addVFX('IMPACT', state.enemyX, GROUND_Y - 40, result.isCrit ? "gold" : "red");
                    
                    if (result.isCrit) {
@@ -1414,7 +1468,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
                      applyKnockback('enemy', 1.5);
                      applyKnockback('player', 1.5); 
                  } else {
-                     state.enemy.hp -= Math.floor(dmg);
+                     const mitigated = applyEnemyDefense(dmg);
+                     state.enemy.hp -= Math.floor(mitigated);
                      applyKnockback('enemy', 0.5);
                      addFloatingText(state.enemyX, GROUND_Y - 100, `${ability.name}! ${Math.floor(dmg)}`, isCrit ? "gold" : "orange");
                      addVFX('IMPACT', state.enemyX, GROUND_Y - 40, isCrit ? "gold" : "red");
