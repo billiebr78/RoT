@@ -151,7 +151,7 @@ const BattleSummary: React.FC<Props> = ({ summary, onExit, onContinue }) => {
                             className="flex-1 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-emerald-600 active:scale-95 transition-transform"
                             style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
                         >
-                            Next [H] <ChevronsRight size={16} />
+                            Map [H] <ChevronsRight size={16} />
                         </button>
                     )}
                 </div>

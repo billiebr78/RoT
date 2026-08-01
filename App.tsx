@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { Character, ItemSlot, Attribute } from './types';
+import { Character, ItemSlot, Attribute, Enemy } from './types';
 import CharacterCreation from './components/CharacterCreation';
 import Hub from './components/Hub';
 import GameLoop from './components/GameLoop';
+import MapView from './components/MapView';
 import { calculateTotalStats } from './services/engine';
 import { getHp } from './constants';
+import { PLAYER_START } from './game/mapData';
 import { Sword, Upload, ArrowLeft, Trash2 } from 'lucide-react';
 
-type GameScreen = 'splash' | 'create' | 'hub' | 'game' | 'dead';
+type GameScreen = 'splash' | 'create' | 'hub' | 'map' | 'game' | 'dead';
 type SplashView = 'main' | 'load';
 
 const App: React.FC = () => {
@@ -16,6 +18,9 @@ const App: React.FC = () => {
   const [splashView, setSplashView] = useState<SplashView>('main');
   const [character, setCharacter] = useState<Character | null>(null);
   const [saveSlots, setSaveSlots] = useState<Character[]>([]);
+  const [pendingEnemy, setPendingEnemy] = useState<Enemy | null>(null);
+  const [mapPrevPos, setMapPrevPos] = useState<{ row: number; col: number } | null>(null);
+  const [combatResult, setCombatResult] = useState<'win' | 'flee' | 'enemyFled' | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('rot_saves');
@@ -98,14 +103,17 @@ const App: React.FC = () => {
       const lossPct = 0.05 + Math.random() * 0.20; // 0.05 to 0.25
       newChar.gold = Math.floor(newChar.gold * (1 - lossPct));
       
-      // Boss Retreat Mechanic: If died at a Boss Stage (multiple of 5), push back to start of chapter
-      if (newChar.maxStage % 5 === 0 && newChar.maxStage > 1) {
-          // E.g. Died at 5 -> Go to 1. Died at 10 -> Go to 6.
-          newChar.maxStage = newChar.maxStage - 4;
-      }
+      // Full Bravery recovery on death
+      const maxBravery = 1 + Math.floor(newChar.level / 10);
+      newChar.bravery = maxBravery;
+      newChar.maxBravery = maxBravery;
+
+      // Return to starting city on death
+      newChar.mapRow = PLAYER_START.row;
+      newChar.mapCol = PLAYER_START.col;
 
       saveGame(newChar);
-      setScreen('hub');
+      setScreen('map');
   };
 
   // Keyboard shortcut: press J on the death screen to revive
@@ -202,17 +210,37 @@ const App: React.FC = () => {
         <Hub 
           character={character} 
           onUpdateCharacter={saveGame}
-          onStartJourney={() => setScreen('game')}
+          onStartJourney={() => setScreen('map')}
           onLogout={() => { setCharacter(null); setScreen('splash'); setSplashView('main'); }}
+        />
+      )}
+
+      {screen === 'map' && character && (
+        <MapView
+          character={character}
+          combatResult={combatResult}
+          prevPos={mapPrevPos}
+          onClearCombatResult={() => { setCombatResult(null); setMapPrevPos(null); }}
+          onEnterCombat={(enemy, prev) => {
+              setPendingEnemy(enemy);
+              setMapPrevPos(prev);
+              setScreen('game');
+          }}
+          onEnterTown={() => setScreen('hub')}
+          onLogout={() => { setCharacter(null); setScreen('splash'); setSplashView('main'); }}
+          onUpdateCharacter={saveGame}
         />
       )}
 
       {screen === 'game' && character && (
         <GameLoop 
           character={character} 
-          onExit={(updatedChar) => {
+          presetEnemy={pendingEnemy}
+          onExit={(updatedChar, result) => {
               saveGame(updatedChar);
-              setScreen('hub');
+              setCombatResult(result || 'win');
+              setPendingEnemy(null);
+              setScreen('map');
           }}
           onDeath={handleDeath}
         />

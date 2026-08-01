@@ -11,8 +11,9 @@ import { Heart, Zap, Shield, Sword, ChevronsRight, Trophy, LogOut, Lock, ArrowRi
 
 interface Props {
   character: Character;
-  onExit: (updatedChar: Character) => void;
+  onExit: (updatedChar: Character, result?: 'win' | 'flee' | 'enemyFled') => void;
   onDeath: () => void;
+  presetEnemy?: Enemy | null;
 }
 
 const PLAYER_SPEED = 2.5;
@@ -49,7 +50,7 @@ interface VisualEffect {
     size: number;
 }
 
-const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
+const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy }) => {
   const playerHpBarRef = useRef<HTMLDivElement>(null);
   const playerHpTextRef = useRef<HTMLSpanElement>(null);
   const enemyHpBarRef = useRef<HTMLDivElement>(null);
@@ -227,7 +228,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
 
   const spawnEnemy = () => {
     const stats = gameState.current.cachedTotalStats || calculateTotalStats(character);
-    const enemy = generateEnemy(gameState.current.stage, character.level, stats[Attribute.LUCK]);
+    // Use preset enemy from map if available, otherwise generate from stage
+    const enemy = presetEnemy || generateEnemy(gameState.current.stage, character.level, stats[Attribute.LUCK]);
     gameState.current.enemy = enemy;
     gameState.current.enemyX = ENEMY_SPAWN_X;
     gameState.current.enemyAI = { state: 'IDLE', timer: 0, abilityToCast: null, isPursuing: false };
@@ -1686,17 +1688,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
   };
 
   const handleContinueJourney = () => {
-      const state = gameState.current;
-      state.stage++;
-      // Reset positions for the new arena: player at left spawn, camera at 0.
-      state.playerX = PLAYER_SPAWN_X;
-      state.cameraX = 0;
-      state.fleeCountdown = -1;
-      setHudStatic(prev => ({ ...prev, stage: state.stage }));
-      setBattleSummary(null);
-      state.isPaused = false;
-      state.lastTime = performance.now();
-      spawnEnemy();
+      // In the map system, "Next" returns to the map (same as "Town").
+      // Both buttons call handleExit, which passes the combat result to App.
+      handleExit();
   };
 
   const calculateExitState = () => {
@@ -1717,11 +1711,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath }) => {
       // If the player fled, use the pre-computed penalized character
       // stashed by handleFlee(). Otherwise compute normal exit state.
       const pending = (gameState.current as any).pendingFleeChar;
+      const outcome = battleSummaryRef.current?.outcome || 'victory';
       if (pending) {
           (gameState.current as any).pendingFleeChar = null;
-          onExit(pending);
+          onExit(pending, 'flee');
       } else {
-          onExit(calculateExitState());
+          onExit(calculateExitState(), outcome === 'enemyFled' ? 'enemyFled' : 'win');
       }
   };
 
