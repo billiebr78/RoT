@@ -9,8 +9,8 @@ export {
   ENEMIES_DB, ENEMY_ABILITIES_DB, ARCHETYPE_BEHAVIORS, BOSS_FLEE_THRESHOLD,
   ABILITY_DB, ITEM_PREFIXES, ITEM_SUFFIXES, MYTHIC_PREFIXES, MYTHIC_SUFFIXES,
   OFFHAND_DB, WEAPON_TEMPLATES, POTION_DB, SCROLL_DB,
-  ArchetypeBehavior,
 } from './services/dataLoader';
+export type { ArchetypeBehavior, EnemyTemplate } from './services/dataLoader';
 import { ENEMY_ABILITIES_DB } from './services/dataLoader';
 
 export const BASE_ATTRIBUTE_VALUE = 3;
