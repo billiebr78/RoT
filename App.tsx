@@ -291,7 +291,7 @@ const App: React.FC = () => {
 
       {/* Rest heal dialog */}
       {restHealInfo !== null && screen === 'map' && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setRestHealInfo(null)} style={{zIndex: 200}}>
+        <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
           <div className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl p-6 text-center max-w-xs">
             <h2 className="font-serif text-xl text-emerald-300 mb-2">You Rested</h2>
             <p className="text-medieval-200 text-sm mb-4">
@@ -300,9 +300,11 @@ const App: React.FC = () => {
             <p className="text-medieval-400 text-xs mb-4">Nearby areas may have respawned enemies.</p>
             <button
               onClick={() => setRestHealInfo(null)}
-              className="px-6 py-2 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded border border-medieval-500 text-sm"
+              onKeyDown={(e) => { if (e.key === 'j' || e.key === 'J' || e.key === 'Enter') setRestHealInfo(null); }}
+              className="px-6 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded border border-emerald-600 text-sm"
+              autoFocus
             >
-              Continue
+              Journey Onward [J]
             </button>
           </div>
         </div>

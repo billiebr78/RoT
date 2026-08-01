@@ -1,5 +1,6 @@
 import React from 'react';
 import { Item, ItemSlot, Character, Buff } from '../../types';
+import { ABILITY_DB } from '../../constants';
 import { Sword, ChevronLeft, ChevronRight, FlaskConical, Scroll, HelpCircle, Lock, Shield, Heart, Ghost, Footprints } from 'lucide-react';
 import { renderIcon } from '../../render/icons';
 
@@ -160,6 +161,8 @@ const BottomControls: React.FC<Props> = ({
                 {/* Ability buttons */}
                 <div className="flex gap-1">
                     {activeAbilities.slice(0, 3).map((abId, idx) => {
+                        const ability = ABILITY_DB.find(a => a.id === abId);
+                        if (!ability) return null;
                         return (
                             <button
                                 key={abId}
@@ -167,9 +170,10 @@ const BottomControls: React.FC<Props> = ({
                                 onClick={() => onAbility(abId)}
                                 className="relative bg-medieval-700/90 border-2 border-medieval-400 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none"
                                 style={{ width: 'clamp(38px, 10vmin, 56px)', height: 'clamp(38px, 10vmin, 56px)' }}
-                                aria-label="Ability"
+                                aria-label={ability.name}
+                                title={ability.name}
                             >
-                                {renderIcon(abId, 22, 'text-white')}
+                                {renderIcon(ability.icon, 22, 'text-white')}
                                 <span className="absolute top-0 right-0 text-gray-300 font-bold bg-black/80 rounded" style={{ fontSize: '8px', padding: '1px 3px' }}>
                                     {idx === 0 ? 'J' : idx === 1 ? 'K' : 'L'}
                                 </span>
