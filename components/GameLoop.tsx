@@ -1057,7 +1057,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
            addFloatingText(state.playerX, GROUND_Y - 80, `-${finalDmg}`, "red");
 
            // Stun duration: 2s for SMASH, 3s for Web (Spider)
-           const stunDuration = ability.id === 'e_web' ? 3000 : 2000;
+           // Web's longer stun is handled by the impactTimer duration below
            state.castTimer = 0;
            state.pendingAbilityId = null;
 
@@ -1669,7 +1669,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     const exp = state.enemy.expReward;
     const gold = state.enemy.goldReward;
     const drops: Item[] = [];
-    const loot = generateLoot(state.enemy.level || character.level, totalStats[Attribute.LUCK], state.enemy.luckBonus || 0);
+    const loot = generateLoot(character.level, totalStats[Attribute.LUCK], state.enemy.luckBonus || 0);
     if (loot) drops.push(loot);
 
     state.expGained += exp;
