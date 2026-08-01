@@ -492,12 +492,39 @@ export const draw = (
         }
         if (aiState === 'FLEEING' && state.enemyFleeCountdown >= 0) {
             // Enemy flee countdown — small bar above the enemy showing
-            // the 5-second escape timer.
-            const fleePct = state.enemyFleeCountdown / 3000;
+            // the escape timer.
+            const fleePct = state.enemyFleeCountdown / 5000;
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(state.enemyX - 20, GROUND_Y - 100, 40, 4);
             ctx.fillStyle = '#f97316';
             ctx.fillRect(state.enemyX - 20, GROUND_Y - 100, 40 * fleePct, 4);
+        }
+        // Enemy Stone Skin indicator (gray shield outline)
+        const stoneSkin = (state.enemy as any).stoneSkinTurns;
+        if (stoneSkin && stoneSkin > 0) {
+            ctx.strokeStyle = '#9ca3af';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 2]);
+            ctx.beginPath();
+            ctx.arc(state.enemyX, GROUND_Y - 40, 35, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        // Enemy Shield barrier indicator (purple outline)
+        const enemyBarrier = (state.enemy as any).barrierHp;
+        if (enemyBarrier && enemyBarrier > 0) {
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 2]);
+            ctx.beginPath();
+            ctx.arc(state.enemyX, GROUND_Y - 40, 42, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.font = "bold 10px monospace";
+            ctx.fillStyle = '#c084fc';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${Math.ceil(enemyBarrier)}`, state.enemyX, GROUND_Y - 85);
+            ctx.textAlign = 'left';
         }
     }
 

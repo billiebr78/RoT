@@ -613,7 +613,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
                                     ai.state = 'CASTING';
                                     ai.abilityToCast = ability;
                                     ai.timer = state.enemy.isBoss ? ability.castTime * 0.75 : ability.castTime;
-                                    addFloatingText(state.enemyX, GROUND_Y - 140, "CASTING!", "fuchsia");
+                                    const castText = ability.id === 'e_ranged' ? "preparing attack..." : "CASTING!";
+                                    addFloatingText(state.enemyX, GROUND_Y - 140, castText, "fuchsia");
                                 } else {
                                     ai.state = 'PREPARE';
                                     ai.timer = Math.max(50, 300 + Math.random() * 150);
@@ -1054,11 +1055,15 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
            state.playerHp -= finalDmg;
            addVFX('SMASH', state.playerX, GROUND_Y, "orange");
            addFloatingText(state.playerX, GROUND_Y - 80, `-${finalDmg}`, "red");
-           
+
+           // Stun duration: 2s for SMASH, 3s for Web (Spider)
+           const stunDuration = ability.id === 'e_web' ? 3000 : 2000;
            state.castTimer = 0;
            state.pendingAbilityId = null;
 
       } else if (ability.effect === 'ranged') {
+           // Brigandine's Ranged Attack shows "preparing attack..." during cast
+           // The cast text is already shown by the AI. Here we just fire the projectile.
            spawnProjectile('enemy', state.enemyX - 20, GROUND_Y - 50, state.playerX, baseDmg, false, 'cyan', 'damage');
       } else if (ability.effect === 'buff') {
            // Stone Skin (Golem): +50% armor buff for 10 seconds
