@@ -15,19 +15,22 @@ export interface TerrainConfig {
 
 export const TERRAIN_CONFIGS: Record<TerrainType, TerrainConfig> = {
   City:     { spawnChance: 0,    cooldownTurns: Infinity, accessible: true,  spawnPool: [] },
-  Road:     { spawnChance: 0.40, cooldownTurns: 5,        accessible: true,  spawnPool: ['Orc', 'Skeleton', 'Orc Shaman'] },
-  Grass:    { spawnChance: 0.60, cooldownTurns: 5,        accessible: true,  spawnPool: ['Rat', 'Goblin', 'Orc'] },
-  Forest:   { spawnChance: 0.70, cooldownTurns: 4,        accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
-  Mountain: { spawnChance: 0.60, cooldownTurns: 5,        accessible: true,  spawnPool: ['Giant Bat', 'Wolf', 'Spider', 'Golem'] },
-  Sand:     { spawnChance: 0.40, cooldownTurns: 10,       accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
-  Mud:      { spawnChance: 0.50, cooldownTurns: 3,        accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
-  Ice:      { spawnChance: 0.10, cooldownTurns: 30,       accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
-  Castle:   { spawnChance: 0.80, cooldownTurns: 10,       accessible: true,  spawnPool: ['Skeleton', 'Orc', 'Vampire'] },
-  Cavern:   { spawnChance: 0.70, cooldownTurns: 3,        accessible: true,  spawnPool: ['Skeleton', 'Dark Knight', 'Sorcerer'] },
+  Road:     { spawnChance: 0.40, cooldownTurns: 10,       accessible: true,  spawnPool: ['Orc', 'Skeleton', 'Orc Shaman'] },
+  Grass:    { spawnChance: 0.60, cooldownTurns: 10,       accessible: true,  spawnPool: ['Rat', 'Goblin', 'Orc'] },
+  Forest:   { spawnChance: 0.70, cooldownTurns: 8,        accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
+  Mountain: { spawnChance: 0.60, cooldownTurns: 10,       accessible: true,  spawnPool: ['Giant Bat', 'Wolf', 'Spider', 'Golem'] },
+  Sand:     { spawnChance: 0.40, cooldownTurns: 20,       accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
+  Mud:      { spawnChance: 0.50, cooldownTurns: 6,        accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
+  Ice:      { spawnChance: 0.10, cooldownTurns: 60,       accessible: true,  spawnPool: ['Orc', 'Orc Shaman', 'Wolf'] },
+  Castle:   { spawnChance: 0.80, cooldownTurns: 20,       accessible: true,  spawnPool: ['Skeleton', 'Orc', 'Vampire'] },
+  Cavern:   { spawnChance: 0.70, cooldownTurns: 6,        accessible: true,  spawnPool: ['Skeleton', 'Dark Knight', 'Sorcerer'] },
   Water:    { spawnChance: 0,    cooldownTurns: 0,        accessible: false, spawnPool: [] },
   Rock:     { spawnChance: 0,    cooldownTurns: 0,        accessible: false, spawnPool: [] },
   Lava:     { spawnChance: 0,    cooldownTurns: 0,        accessible: false, spawnPool: [] },
 };
+
+// Boss/miniboss cooldown: 30 base + 10 extra = 40 turns
+export const BOSS_COOLDOWN_TURNS = 40;
 
 // 16x16 terrain grid (row-major, 0-indexed)
 // Row 0 = top, Row 15 = bottom. Col 0 = left, Col 15 = right.

@@ -8,6 +8,7 @@ import { generateEnemy } from '../services/engine';
 import {
     MAP_TERRAIN, MAP_SPAWN, TERRAIN_CONFIGS, MAP_SIZE,
     PLAYER_START, CITY_POSITIONS, BOSS_NAMES, MINIBOSS_MAP,
+    BOSS_COOLDOWN_TURNS,
     TerrainType, CellSpawnType
 } from '../game/mapData';
 import { MapState, MapCellState, createInitialMapState } from '../game/mapState';
@@ -101,7 +102,7 @@ const MapView: React.FC<Props> = ({
             const spawn = MAP_SPAWN[playerPos.row][playerPos.col];
             if (spawn.type === 'boss' || spawn.type === 'miniboss') {
                 newMapState.cells[playerPos.row][playerPos.col].bossDefeated = true;
-                newMapState.cells[playerPos.row][playerPos.col].clearedTurnsRemaining = 30;
+                newMapState.cells[playerPos.row][playerPos.col].clearedTurnsRemaining = BOSS_COOLDOWN_TURNS;
             }
             setMapState(newMapState);
             setMessage(combatResult === 'win' ? 'Victory! Area cleared.' : 'The enemy escaped. Area cleared.');
