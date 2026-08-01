@@ -46,7 +46,6 @@ const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealA
     let titleColor: string;
     let subtitle: React.ReactNode = null;
     let showRewards = true;
-    let showButtons = true;
 
     if (outcome === 'victory') {
         icon = <Trophy className="text-yellow-500 mx-auto mb-3 relative z-10" style={{ width: 'clamp(36px, 9vmin, 56px)', height: 'clamp(36px, 9vmin, 56px)' }} />;
@@ -85,7 +84,6 @@ const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealA
             </div>
         );
         showRewards = false;
-        showButtons = false;
     }
 
     return (

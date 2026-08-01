@@ -186,11 +186,13 @@ const MapView: React.FC<Props> = ({
             if (shouldSpawn) {
                 const pool = terrainConfig.spawnPool;
                 const [minLvl, maxLvl] = spawnType.levelRange;
-                // Select enemy from pool based on level (higher level = harder enemy)
-                const levelFraction = (maxLvl - 1) / 35;
+                // Roll the enemy level FIRST, then use it to pick from the pool.
+                // This way a [1,5] cell can spawn Rat (lvl 1-2), Goblin (lvl 3-4),
+                // or Orc (lvl 5) depending on the roll, instead of always Rat.
+                enemyLevel = minLvl + Math.floor(Math.random() * (maxLvl - minLvl + 1));
+                const levelFraction = (enemyLevel - 1) / 35;
                 const poolIndex = Math.min(pool.length - 1, Math.floor(levelFraction * pool.length));
                 enemyName = pool[poolIndex];
-                enemyLevel = minLvl + Math.floor(Math.random() * (maxLvl - minLvl + 1));
             }
         }
 
