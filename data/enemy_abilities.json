@@ -1,0 +1,9 @@
+{
+  "SMASH": { "id": "e_smash", "name": "Heavy Smash", "damageMult": 1.8, "effect": "stun", "cooldown": 8000, "range": 60, "castTime": 1500 },
+  "DRAIN": { "id": "e_drain", "name": "Life Drain", "damageMult": 1.2, "effect": "lifesteal", "cooldown": 10000, "range": 60, "castTime": 1000 },
+  "FIREBALL": { "id": "e_fire", "name": "Shadow Bolt", "damageMult": 1.4, "effect": "ranged", "cooldown": 6000, "range": 400, "castTime": 1000 },
+  "WEB": { "id": "e_web", "name": "Web", "damageMult": 0.5, "effect": "stun", "cooldown": 12000, "range": 200, "castTime": 1000 },
+  "STONE_SKIN": { "id": "e_stone", "name": "Stone Skin", "damageMult": 0, "effect": "buff", "cooldown": 20000, "range": 0, "castTime": 2000 },
+  "SHIELD": { "id": "e_shield", "name": "Shield", "damageMult": 0, "effect": "barrier", "cooldown": 15000, "range": 0, "castTime": 2000 },
+  "RANGED_ATTACK": { "id": "e_ranged", "name": "Ranged Attack", "damageMult": 1.5, "effect": "ranged", "cooldown": 5000, "range": 400, "castTime": 2000 }
+}

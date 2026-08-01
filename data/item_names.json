@@ -1,0 +1,18 @@
+{
+  "prefixes": {
+    "ST": ["Heavy", "Brutal", "Strong", "Titan", "Bear"],
+    "DX": ["Swift", "Agile", "Sharp", "Shadow", "Wind"],
+    "INT": ["Arcane", "Wise", "Mystic", "Astral", "Mind"],
+    "HT": ["Sturdy", "Vital", "Hardy", "Stone", "Oak"],
+    "LUCK": ["Lucky", "Golden", "Fated", "Rich", "Royal"]
+  },
+  "suffixes": {
+    "ST": ["of Power", "of Might", "of the Giant", "of Crushing"],
+    "DX": ["of Speed", "of Precision", "of the Hawk", "of Striking"],
+    "INT": ["of Magic", "of Wisdom", "of the Void", "of Sorcery"],
+    "HT": ["of Life", "of Endurance", "of the Golem", "of Health"],
+    "LUCK": ["of Fortune", "of Wealth", "of Destiny", "of Greed"]
+  },
+  "mythicPrefixes": ["Godly", "Eternal", "Divine", "Ancient", "Celestial"],
+  "mythicSuffixes": ["of the Gods", "of Infinity", "of the Cosmos", "of Legends"]
+}

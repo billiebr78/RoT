@@ -1,0 +1,29 @@
+{
+  "offhand": [
+    { "name": "Spellbook", "offHandType": "SPELLBOOK", "stats": { "INT": 2 }, "icon": "Book", "baseValue": 30 },
+    { "name": "Buckler", "offHandType": "BUCKLER", "blockChance": 15, "stats": { "DX": 1 }, "icon": "Shield", "armor": 2, "baseValue": 20 },
+    { "name": "Swordbreaker", "offHandType": "SWORDBREAKER", "blockChance": 10, "damage": 3, "stats": { "ST": 1 }, "icon": "Sword", "baseValue": 35 },
+    { "name": "Talisman", "offHandType": "TALISMAN", "stats": { "LUCK": 3 }, "icon": "Zap", "baseValue": 40 }
+  ],
+  "weapons": [
+    { "name": "Sword", "type": "SLASH", "damageMod": 1.0, "icon": "Sword" },
+    { "name": "Dagger", "type": "SLASH", "damageMod": 0.8, "stats": { "DX": 1 }, "icon": "Sword" },
+    { "name": "Mace", "type": "BLUNT", "damageMod": 1.2, "icon": "Hammer" },
+    { "name": "Hammer", "type": "BLUNT", "damageMod": 1.3, "icon": "Hammer" },
+    { "name": "Staff", "type": "MAGIC", "damageMod": 1.1, "stats": { "INT": 2 }, "icon": "Wand" },
+    { "name": "Wand", "type": "MAGIC", "damageMod": 0.9, "stats": { "INT": 1 }, "icon": "Wand" }
+  ],
+  "potions": [
+    { "id": "pot_heal_small", "name": "Small Healing Potion", "effect": "Heals 50 HP", "magnitude": 50, "duration": 0, "buffType": "MECHANIC", "value": 25 },
+    { "id": "pot_heal_greater", "name": "Greater Healing Potion", "effect": "Heals 150 HP", "magnitude": 150, "duration": 0, "buffType": "MECHANIC", "value": 100 },
+    { "id": "pot_heal_major", "name": "Major Healing Potion", "effect": "Heals 350 HP", "magnitude": 350, "duration": 0, "buffType": "MECHANIC", "value": 350 }
+  ],
+  "scrolls": [
+    { "id": "scr_power", "name": "Scroll of Power", "effect": "Damage +50%", "duration": 20000, "buffType": "STAT" },
+    { "id": "scr_stone", "name": "Stone Skin", "effect": "Armor +50%", "duration": 30000, "buffType": "STAT" },
+    { "id": "scr_feral", "name": "Feral Instinct", "effect": "Crit +20%", "duration": 20000, "buffType": "STAT" },
+    { "id": "scr_bear", "name": "Strength of Bear", "effect": "ST +10", "duration": 45000, "buffType": "STAT" },
+    { "id": "scr_shadow", "name": "Shadow Whispers", "effect": "Evasion +20%", "duration": 30000, "buffType": "MECHANIC" },
+    { "id": "scr_wisdom", "name": "Ancient Wisdom", "effect": "INT +10", "duration": 45000, "buffType": "STAT" }
+  ]
+}

@@ -1,0 +1,19 @@
+[
+  { "name": "Rat", "sprite": "rat", "baseExp": 5, "weights": { "ST": 0.2, "DX": 0.5, "HT": 0.2, "INT": 0.1 }, "abilities": [], "archetypes": ["Coward", "Berzerker"] },
+  { "name": "Goblin Grunt", "sprite": "goblin", "baseExp": 10, "weights": { "ST": 0.3, "DX": 0.4, "HT": 0.2, "INT": 0.1 }, "abilities": [], "archetypes": ["Berzerker", "Coward"] },
+  { "name": "Skeleton Soldier", "sprite": "skeleton", "baseExp": 20, "weights": { "ST": 0.4, "DX": 0.3, "HT": 0.3, "INT": 0.0 }, "abilities": [], "archetypes": ["Berzerker", "Aggressor"] },
+  { "name": "Orc Warrior", "sprite": "orc", "baseExp": 50, "weights": { "ST": 0.6, "DX": 0.1, "HT": 0.3, "INT": 0.0 }, "abilities": ["SMASH"], "archetypes": ["Berzerker", "Aggressor"] },
+  { "name": "Orc Shaman", "sprite": "orc_shaman", "baseExp": 70, "weights": { "ST": 0.2, "DX": 0.2, "HT": 0.2, "INT": 0.4 }, "abilities": ["FIREBALL"], "archetypes": ["Coward", "Skirmisher"] },
+  { "name": "Wolf", "sprite": "wolf", "baseExp": 90, "weights": { "ST": 0.4, "DX": 0.4, "HT": 0.2, "INT": 0.0 }, "abilities": [], "archetypes": ["Berzerker", "Aggressor"] },
+  { "name": "Giant Bat", "sprite": "bat", "baseExp": 50, "weights": { "ST": 0.3, "DX": 0.4, "HT": 0.1, "INT": 0.2 }, "abilities": ["DRAIN"], "archetypes": ["Skirmisher", "Coward"] },
+  { "name": "Spider", "sprite": "spider", "baseExp": 70, "weights": { "ST": 0.3, "DX": 0.3, "HT": 0.2, "INT": 0.2 }, "abilities": ["WEB", "DRAIN"], "archetypes": ["Skirmisher", "Coward"] },
+  { "name": "Dark Knight", "sprite": "knight", "baseExp": 150, "weights": { "ST": 0.5, "DX": 0.2, "HT": 0.3, "INT": 0.0 }, "abilities": ["SMASH"], "archetypes": ["Berzerker", "Defender"] },
+  { "name": "Vampire", "sprite": "vampire", "baseExp": 200, "weights": { "ST": 0.3, "DX": 0.4, "HT": 0.2, "INT": 0.1 }, "abilities": ["DRAIN"], "archetypes": ["Aggressor", "Coward"] },
+  { "name": "Stone Golem", "sprite": "golem", "baseExp": 250, "weights": { "ST": 0.7, "DX": 0.0, "HT": 0.3, "INT": 0.0 }, "abilities": ["SMASH", "STONE_SKIN"], "archetypes": ["Defender", "Aggressor"] },
+  { "name": "Corrupted Sorcerer", "sprite": "sorcerer", "baseExp": 200, "weights": { "ST": 0.1, "DX": 0.2, "HT": 0.1, "INT": 0.6 }, "abilities": ["FIREBALL"], "archetypes": ["Skirmisher", "Coward"] },
+  { "name": "Wyvern", "sprite": "dragon", "baseExp": 300, "weights": { "ST": 0.4, "DX": 0.2, "HT": 0.2, "INT": 0.2 }, "abilities": ["SMASH", "FIREBALL"], "archetypes": ["Skirmisher", "Berzerker"], "isBoss": true },
+  { "name": "Brigandine", "sprite": "brigandine", "baseExp": 400, "weights": { "ST": 0.3, "DX": 0.5, "HT": 0.2, "INT": 0.0 }, "abilities": ["RANGED_ATTACK"], "archetypes": ["Aggressor", "Skirmisher"], "isBoss": true },
+  { "name": "Orc Warchief", "sprite": "orc", "baseExp": 400, "weights": { "ST": 0.6, "DX": 0.1, "HT": 0.3, "INT": 0.0 }, "abilities": ["SMASH"], "archetypes": ["Berzerker", "Aggressor"], "isBoss": true },
+  { "name": "Bear", "sprite": "bear", "baseExp": 400, "weights": { "ST": 0.7, "DX": 0.1, "HT": 0.2, "INT": 0.0 }, "abilities": ["SMASH"], "archetypes": ["Berzerker", "Aggressor"], "isBoss": true },
+  { "name": "Warlock", "sprite": "warlock", "baseExp": 400, "weights": { "ST": 0.1, "DX": 0.2, "HT": 0.1, "INT": 0.6 }, "abilities": ["FIREBALL", "SHIELD"], "archetypes": ["Skirmisher", "Coward"], "isBoss": true }
+]

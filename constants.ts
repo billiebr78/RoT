@@ -1,5 +1,17 @@
 
-import { Ability, AbilityTree, AbilityType, AbilityStyle, Attribute, ClassType, Item, ItemSlot, EnemyAbility, SpriteFrame, WeaponType, OffHandType } from './types';
+import { Attribute, ClassType, Item, ItemSlot, SpriteFrame, WeaponType, OffHandType } from './types';
+
+// === DATA-DRIVEN IMPORTS ===
+// Game data (enemies, abilities, items, archetypes) is now loaded from
+// JSON files via dataLoader.ts. Only formulas, sprites, and starting
+// items remain in this file.
+export {
+  ENEMIES_DB, ENEMY_ABILITIES_DB, ARCHETYPE_BEHAVIORS, BOSS_FLEE_THRESHOLD,
+  ABILITY_DB, ITEM_PREFIXES, ITEM_SUFFIXES, MYTHIC_PREFIXES, MYTHIC_SUFFIXES,
+  OFFHAND_DB, WEAPON_TEMPLATES, POTION_DB, SCROLL_DB,
+  ArchetypeBehavior,
+} from './services/dataLoader';
+import { ENEMY_ABILITIES_DB } from './services/dataLoader';
 
 export const BASE_ATTRIBUTE_VALUE = 3;
 export const BONUS_ATTRIBUTE_VALUE = 2;
@@ -33,42 +45,9 @@ export const getEvasion = (dx: number) => Math.min(40, dx * 0.4); // Cap at 40%
  */
 export const getCooldownReduction = (dx: number) => Math.min(0.5, dx * 0.017);
 
-// Item Generation Data
-export const ITEM_PREFIXES: Record<Attribute, string[]> = {
-  [Attribute.ST]: ['Heavy', 'Brutal', 'Strong', 'Titan', 'Bear'],
-  [Attribute.DX]: ['Swift', 'Agile', 'Sharp', 'Shadow', 'Wind'],
-  [Attribute.INT]: ['Arcane', 'Wise', 'Mystic', 'Astral', 'Mind'],
-  [Attribute.HT]: ['Sturdy', 'Vital', 'Hardy', 'Stone', 'Oak'],
-  [Attribute.LUCK]: ['Lucky', 'Golden', 'Fated', 'Rich', 'Royal']
-};
-
-export const ITEM_SUFFIXES: Record<Attribute, string[]> = {
-  [Attribute.ST]: ['of Power', 'of Might', 'of the Giant', 'of Crushing'],
-  [Attribute.DX]: ['of Speed', 'of Precision', 'of the Hawk', 'of Striking'],
-  [Attribute.INT]: ['of Magic', 'of Wisdom', 'of the Void', 'of Sorcery'],
-  [Attribute.HT]: ['of Life', 'of Endurance', 'of the Golem', 'of Health'],
-  [Attribute.LUCK]: ['of Fortune', 'of Wealth', 'of Destiny', 'of Greed']
-};
-
-// Special Mythic Names
-export const MYTHIC_PREFIXES = ['Godly', 'Eternal', 'Divine', 'Ancient', 'Celestial'];
-export const MYTHIC_SUFFIXES = ['of the Gods', 'of Infinity', 'of the Cosmos', 'of Legends'];
-
-export const OFFHAND_DB = [
-    { name: 'Spellbook', offHandType: OffHandType.SPELLBOOK, stats: {[Attribute.INT]: 2}, icon: 'Book', baseValue: 30 },
-    { name: 'Buckler', offHandType: OffHandType.BUCKLER, blockChance: 15, stats: {[Attribute.DX]: 1}, icon: 'Shield', armor: 2, baseValue: 20 },
-    { name: 'Swordbreaker', offHandType: OffHandType.SWORDBREAKER, blockChance: 10, damage: 3, stats: {[Attribute.ST]: 1}, icon: 'Sword', baseValue: 35 },
-    { name: 'Talisman', offHandType: OffHandType.TALISMAN, stats: {[Attribute.LUCK]: 3}, icon: 'Zap', baseValue: 40 },
-];
-
-export const WEAPON_TEMPLATES = [
-    { name: 'Sword', type: WeaponType.SLASH, damageMod: 1.0, icon: 'Sword' },
-    { name: 'Dagger', type: WeaponType.SLASH, damageMod: 0.8, stats: {[Attribute.DX]: 1}, icon: 'Sword' }, // lucide has no Dagger; Sword is the closest available
-    { name: 'Mace', type: WeaponType.BLUNT, damageMod: 1.2, icon: 'Hammer' },
-    { name: 'Hammer', type: WeaponType.BLUNT, damageMod: 1.3, icon: 'Hammer' },
-    { name: 'Staff', type: WeaponType.MAGIC, damageMod: 1.1, stats: {[Attribute.INT]: 2}, icon: 'Wand' },
-    { name: 'Wand', type: WeaponType.MAGIC, damageMod: 0.9, stats: {[Attribute.INT]: 1}, icon: 'Wand' },
-];
+// Item Generation Data — now loaded from data/items.json via dataLoader
+// (ITEM_PREFIXES, ITEM_SUFFIXES, MYTHIC_PREFIXES, MYTHIC_SUFFIXES,
+//  OFFHAND_DB, WEAPON_TEMPLATES, POTION_DB, SCROLL_DB re-exported above)
 
 // Mock Data
 export const STARTING_ITEMS: Record<ClassType, Item[]> = {
@@ -86,267 +65,10 @@ export const STARTING_ITEMS: Record<ClassType, Item[]> = {
   ]
 };
 
-// Consumable Database
-export const POTION_DB = [
-    { id: 'pot_heal_small', name: 'Small Healing Potion', effect: 'Heals 50 HP', magnitude: 50, duration: 0, buffType: 'MECHANIC', value: 25 },
-    { id: 'pot_heal_greater', name: 'Greater Healing Potion', effect: 'Heals 150 HP', magnitude: 150, duration: 0, buffType: 'MECHANIC', value: 100 },
-    { id: 'pot_heal_major', name: 'Major Healing Potion', effect: 'Heals 350 HP', magnitude: 350, duration: 0, buffType: 'MECHANIC', value: 350 },
-];
+// Consumable Database — now loaded from data/items.json via dataLoader
 
-export const SCROLL_DB = [
-    { id: 'scr_power', name: 'Scroll of Power', effect: 'Damage +50%', duration: 20000, buffType: 'STAT' },
-    { id: 'scr_stone', name: 'Stone Skin', effect: 'Armor +50%', duration: 30000, buffType: 'STAT' },
-    { id: 'scr_feral', name: 'Feral Instinct', effect: 'Crit +20%', duration: 20000, buffType: 'STAT' },
-    { id: 'scr_bear', name: 'Strength of Bear', effect: 'ST +10', duration: 45000, buffType: 'STAT' },
-    { id: 'scr_shadow', name: 'Shadow Whispers', effect: 'Evasion +20%', duration: 30000, buffType: 'MECHANIC' },
-    { id: 'scr_wisdom', name: 'Ancient Wisdom', effect: 'INT +10', duration: 45000, buffType: 'STAT' },
-];
-
-export const ABILITY_DB: Ability[] = [
-  // --- MIGHT (Warrior) ---
-  // Offensive
-  { id: 'might_strike', name: 'Power Strike', description: 'A heavy forceful blow.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MIGHT, cooldown: 14577, castTime: 300, damageMultiplier: 2.0, scaling: { damage: 0.5 }, effect: 'damage', icon: 'Sword', requiredLevel: 1, maxLevel: 3, range: 110 },
-  { id: 'might_shieldbash', name: 'Shield Bash', description: 'Bash enemy with shield. DMG based on Armor.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MIGHT, cooldown: 29157, castTime: 400, damageMultiplier: 2, scaling: { damage: 1 }, effect: 'damage', icon: 'Shield', requiredLevel: 5, maxLevel: 3, range: 130 },
-  { id: 'might_earthquake', name: 'Earthquake', description: 'Shatter the earth dealing massive damage.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MIGHT, cooldown: 72897, castTime: 800, damageMultiplier: 4.0, scaling: { damage: 0.8 }, effect: 'damage', icon: 'Zap', requiredLevel: 10, maxLevel: 3, range: 120 },
-  { id: 'might_titanic', name: 'Titanic Smash', description: 'The ultimate display of strength.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MIGHT, cooldown: 124416, castTime: 1200, damageMultiplier: 6.0, scaling: { damage: 1.0 }, effect: 'damage', icon: 'Skull', requiredLevel: 15, maxLevel: 3, range: 120 },
-  
-  // Defensive
-  { id: 'might_roar', name: 'Battle Roar', description: '+15% Dmg/Lvl, Heals, and Fears nearby enemies.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MIGHT, cooldown: 67068, castTime: 0, effect: 'buff', scaling: { effect: 0.15, duration: 2000 }, icon: 'Heart', requiredLevel: 2, maxLevel: 3 },
-  { id: 'might_majesty', name: 'Majesty', description: 'Exponential Armor Buff (Base 15).', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MIGHT, cooldown: 97200, castTime: 200, effect: 'buff', scaling: { duration: 2000 }, icon: 'Shield', requiredLevel: 8, maxLevel: 3 },
-
-  // Passive
-  { id: 'might_mastery', name: 'Weapon Mastery', description: 'Increases Strength.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.MIGHT, cooldown: 0, stats: { [Attribute.ST]: 3 }, scaling: { stats: { [Attribute.ST]: 2 } }, icon: 'Sword', requiredLevel: 3, maxLevel: 3 },
-  { id: 'might_armor', name: 'Heavy Armor', description: 'Increases Health drastically.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.MIGHT, cooldown: 0, stats: { [Attribute.HT]: 3 }, scaling: { stats: { [Attribute.HT]: 3 } }, icon: 'Shield', requiredLevel: 6, maxLevel: 3 },
-
-  // --- TACTICS (Rogue) ---
-  // Offensive
-  { id: 'tactics_mortal', name: 'Focused Attack', description: 'Precise strike to vital areas.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.TACTICS, cooldown: 19440, castTime: 200, damageMultiplier: 2.5, scaling: { damage: 0.5 }, effect: 'damage', icon: 'Crosshair', requiredLevel: 1, maxLevel: 3, range: 110 },
-  { id: 'tactics_backstab', name: 'Cheap Shot', description: 'Stun the enemy, leaving them helpless.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.TACTICS, cooldown: 38880, castTime: 200, damageMultiplier: 1.5, scaling: { damage: 0.3 }, effect: 'stun', icon: 'Skull', requiredLevel: 5, maxLevel: 3, range: 110 },
-  { id: 'tactics_eviscerate', name: 'Eviscerate', description: 'Brutal attack causing deep wounds.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.TACTICS, cooldown: 65000, castTime: 500, damageMultiplier: 5.0, scaling: { damage: 1.0 }, effect: 'damage', icon: 'Droplets', requiredLevel: 10, maxLevel: 3, range: 110 },
-  { id: 'tactics_assassinate', name: 'Assassinate', description: 'Attempt to end the target instantly.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.TACTICS, cooldown: 134784, castTime: 1500, damageMultiplier: 7.0, scaling: { damage: 1.2 }, effect: 'damage', icon: 'Ghost', requiredLevel: 15, maxLevel: 3, range: 110 },
-  
-  // Defensive
-  { id: 'tactics_dash', name: 'Dash', description: 'Dash backward 4× width (or push enemy if cornered). Brief evasion.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.TACTICS, cooldown: 24296, castTime: 0, effect: 'buff', scaling: { duration: 1000 }, icon: 'Footprints', requiredLevel: 2, maxLevel: 3 },
-  { id: 'tactics_ue', name: 'Parry', description: 'Block next hit and counter with Crit.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.TACTICS, cooldown: 72897, castTime: 0, effect: 'parry', scaling: { duration: 1000 }, icon: 'Ghost', requiredLevel: 8, maxLevel: 3 },
-
-  // Passive
-  { id: 'tactics_mastery', name: 'Backstab', description: '+30/45/60% Dmg vs Stunned/Feared.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.TACTICS, cooldown: 0, stats: {}, icon: 'Sword', requiredLevel: 3, maxLevel: 3 },
-  { id: 'tactics_crit', name: 'Dagger Mastery', description: 'Increases DX and Luck.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.TACTICS, cooldown: 0, stats: { [Attribute.DX]: 4, [Attribute.LUCK]: 2 }, scaling: { stats: { [Attribute.DX]: 2, [Attribute.LUCK]: 1 } }, icon: 'Zap', requiredLevel: 6, maxLevel: 3 },
-
-  // --- MYSTICS (Mage) ---
-  // Offensive
-  { id: 'mystic_wind', name: 'Wind Strike', description: 'Fast casting air attack.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 9716, castTime: 500, damageMultiplier: 1.2, scaling: { damage: 0.3 }, effect: 'damage', icon: 'Wind', requiredLevel: 1, maxLevel: 3, range: 400 },
-  { id: 'mystic_hydro', name: 'Hydro Blast', description: 'High pressure water attack.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 24296, castTime: 800, damageMultiplier: 2.0, scaling: { damage: 0.5 }, effect: 'damage', icon: 'Droplets', requiredLevel: 5, maxLevel: 3, range: 400 },
-  { id: 'mystic_meteor', name: 'Meteor', description: 'Summon a meteor from the sky.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 97200, castTime: 1500, damageMultiplier: 4.5, scaling: { damage: 1.0 }, effect: 'damage', icon: 'Flame', requiredLevel: 10, maxLevel: 3, range: 500 },
-  { id: 'mystic_armageddon', name: 'Armageddon', description: 'Unleash the full power of the elements.', type: AbilityType.ACTIVE, style: AbilityStyle.OFFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 165888, castTime: 2000, damageMultiplier: 8.0, scaling: { damage: 1.5 }, effect: 'damage', icon: 'Zap', requiredLevel: 15, maxLevel: 3, range: 600 },
-
-  // Defensive
-  { id: 'mystic_aura', name: 'Aura Shield', description: 'Barrier + light explosion that damages and pushes enemy back.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 48596, castTime: 200, effect: 'barrier', scaling: { effect: 20, duration: 5000 }, icon: 'Shield', requiredLevel: 2, maxLevel: 3 },
-  { id: 'mystic_body', name: 'Body to Mind', description: 'Channel INT to restore Health.', type: AbilityType.ACTIVE, style: AbilityStyle.DEFENSIVE, tree: AbilityTree.MYSTICS, cooldown: 44712, castTime: 1000, effect: 'heal', scaling: { effect: 3 }, icon: 'Heart', requiredLevel: 8, maxLevel: 3 },
-
-  // Passive
-  { id: 'mystic_mastery', name: 'Robe Mastery', description: 'Increases Intelligence.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.MYSTICS, cooldown: 0, stats: { [Attribute.INT]: 3 }, scaling: { stats: { [Attribute.INT]: 2 } }, icon: 'Book', requiredLevel: 3, maxLevel: 3 },
-  { id: 'mystic_anti', name: 'Anti-Magic', description: 'Increases Health and Resist.', type: AbilityType.PASSIVE, style: AbilityStyle.PASSIVE, tree: AbilityTree.MYSTICS, cooldown: 0, stats: { [Attribute.HT]: 2, [Attribute.INT]: 1 }, scaling: { stats: { [Attribute.HT]: 2, [Attribute.INT]: 1 } }, icon: 'Shield', requiredLevel: 6, maxLevel: 3 },
-];
-
-export const ENEMY_ABILITIES_DB: Record<string, EnemyAbility> = {
-  SMASH: { id: 'e_smash', name: 'Heavy Smash', damageMult: 1.8, effect: 'stun', cooldown: 8000, range: 60, castTime: 1500 },
-  DRAIN: { id: 'e_drain', name: 'Life Drain', damageMult: 1.2, effect: 'lifesteal', cooldown: 10000, range: 60, castTime: 1000 },
-  FIREBALL: { id: 'e_fire', name: 'Shadow Bolt', damageMult: 1.4, effect: 'ranged', cooldown: 6000, range: 400, castTime: 1000 },
-  WEB: { id: 'e_web', name: 'Web', damageMult: 0.5, effect: 'stun', cooldown: 12000, range: 200, castTime: 1000 },
-  STONE_SKIN: { id: 'e_stone', name: 'Stone Skin', damageMult: 0, effect: 'buff', cooldown: 20000, range: 0, castTime: 2000 },
-  SHIELD: { id: 'e_shield', name: 'Shield', damageMult: 0, effect: 'barrier', cooldown: 15000, range: 0, castTime: 2000 },
-  RANGED_ATTACK: { id: 'e_ranged', name: 'Ranged Attack', damageMult: 1.5, effect: 'ranged', cooldown: 5000, range: 400, castTime: 2000 },
-};
-
-// === ENEMY ARCHETYPES ===
-// Each archetype defines combat behavior + wimpy response (first aid + flee).
-// At spawn, generateEnemy() rolls 50/50 between the enemy's two possible
-// archetypes. The archetype determines: pursue chance, block bonus, first
-// aid HP thresholds, flee HP threshold, and whether the enemy maintains
-// ranged distance.
-//
-// First Aid: when HP crosses a threshold (going down), 50% chance to enter
-// HEALING state. Enemy retreats to maintain distance, casts for 1 second,
-// then heals 25% of maxHp. Interruptible by knockback. One-shot per
-// threshold (can trigger again at the next threshold).
-//
-// Flee: when HP crosses the flee threshold, enemy enters FLEEING state and
-// runs to the right flee zone. If it reaches the zone, it escapes — the
-// player wins the stage but gets no rewards (exp/gold/loot all 0).
-import type { EnemyArchetype } from './types';
-
-export interface ArchetypeBehavior {
-  pursueChance: number;          // 0-1, chance to pursue when entering ADVANCE
-  blockBonus: number;            // additional block chance (added to base 20%)
-  firstAidThresholds: number[];  // HP fractions (e.g. 0.5 = 50%) that can trigger first aid
-  fleeThreshold: number | null;  // HP fraction to start fleeing, null = never flees
-  isRanged: boolean;             // maintains distance instead of closing to melee
-}
-
-export const ARCHETYPE_BEHAVIORS: Record<EnemyArchetype, ArchetypeBehavior> = {
-  // Berzerker: aggressive pursuer, limited self-heal, never flees.
-  Berzerker: { pursueChance: 0.7, blockBonus: 0, firstAidThresholds: [0.25], fleeThreshold: null, isRanged: false },
-  // Aggressor: standard melee pursuer, heals at 50% and 25%, flees at 10%.
-  Aggressor: { pursueChance: 1.0, blockBonus: 0, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: false },
-  // Skirmisher: ranged, maintains distance, heals at 50% and 25%, flees at 10%.
-  Skirmisher: { pursueChance: 0, blockBonus: 0, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: true },
-  // Defender: tentative pursuer (40%), +10% block, heals at 50% and 25%, flees at 10%.
-  Defender: { pursueChance: 0.4, blockBonus: 0.10, firstAidThresholds: [0.5, 0.25], fleeThreshold: 0.10, isRanged: false },
-  // Coward: fights like Aggressor but jittery (40% back-away per cycle),
-  // heals early (60%/35%), flees at 25%. Not pure ranged — uses whatever
-  // abilities it has, including melee.
-  Coward: { pursueChance: 1.0, blockBonus: 0, firstAidThresholds: [0.6, 0.35], fleeThreshold: 0.25, isRanged: false },
-};
-
-// Boss overrides: bosses use their rolled archetype's combat behavior but
-// have reduced flee chance (5% instead of archetype's default).
-export const BOSS_FLEE_THRESHOLD = 0.05;
-
-export const ENEMIES_DB = [
-  {
-    name: 'Rat',
-    sprite: 'rat',
-    baseExp: 5,
-    weights: { [Attribute.ST]: 0.2, [Attribute.DX]: 0.5, [Attribute.HT]: 0.2, [Attribute.INT]: 0.1 },
-    abilities: [],
-    archetypes: ['Coward', 'Berzerker'] as EnemyArchetype[],
-  },
-  {
-    name: 'Goblin Grunt',
-    sprite: 'goblin',
-    baseExp: 10,
-    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.4, [Attribute.HT]: 0.2, [Attribute.INT]: 0.1 },
-    abilities: [],
-    archetypes: ['Berzerker', 'Coward'] as EnemyArchetype[],
-  },
-  {
-    name: 'Skeleton Soldier',
-    sprite: 'skeleton',
-    baseExp: 20,
-    weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.3, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [],
-    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
-  },
-  {
-    name: 'Orc Warrior',
-    sprite: 'orc',
-    baseExp: 50,
-    weights: { [Attribute.ST]: 0.6, [Attribute.DX]: 0.1, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH],
-    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
-  },
-  {
-    name: 'Orc Shaman',
-    sprite: 'orc_shaman',
-    baseExp: 70,
-    weights: { [Attribute.ST]: 0.2, [Attribute.DX]: 0.2, [Attribute.HT]: 0.2, [Attribute.INT]: 0.4 },
-    abilities: [ENEMY_ABILITIES_DB.FIREBALL],
-    archetypes: ['Coward', 'Skirmisher'] as EnemyArchetype[],
-  },
-  {
-    name: 'Wolf',
-    sprite: 'wolf',
-    baseExp: 90,
-    weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.4, [Attribute.HT]: 0.2, [Attribute.INT]: 0.0 },
-    abilities: [],
-    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
-  },
-  {
-    name: 'Giant Bat',
-    sprite: 'bat',
-    baseExp: 50,
-    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.4, [Attribute.HT]: 0.1, [Attribute.INT]: 0.2 },
-    abilities: [ENEMY_ABILITIES_DB.DRAIN],
-    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
-  },
-  {
-    name: 'Spider',
-    sprite: 'spider',
-    baseExp: 70,
-    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.3, [Attribute.HT]: 0.2, [Attribute.INT]: 0.2 },
-    abilities: [ENEMY_ABILITIES_DB.WEB, ENEMY_ABILITIES_DB.DRAIN],
-    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
-  },
-  {
-    name: 'Dark Knight',
-    sprite: 'knight',
-    baseExp: 150,
-    weights: { [Attribute.ST]: 0.5, [Attribute.DX]: 0.2, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH],
-    archetypes: ['Berzerker', 'Defender'] as EnemyArchetype[],
-  },
-  {
-    name: 'Vampire',
-    sprite: 'vampire',
-    baseExp: 200,
-    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.4, [Attribute.HT]: 0.2, [Attribute.INT]: 0.1 },
-    abilities: [ENEMY_ABILITIES_DB.DRAIN],
-    archetypes: ['Aggressor', 'Coward'] as EnemyArchetype[],
-  },
-  {
-    name: 'Stone Golem',
-    sprite: 'golem',
-    baseExp: 250,
-    weights: { [Attribute.ST]: 0.7, [Attribute.DX]: 0.0, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH, ENEMY_ABILITIES_DB.STONE_SKIN],
-    archetypes: ['Defender', 'Aggressor'] as EnemyArchetype[],
-  },
-  {
-    name: 'Corrupted Sorcerer',
-    sprite: 'sorcerer',
-    baseExp: 200,
-    weights: { [Attribute.ST]: 0.1, [Attribute.DX]: 0.2, [Attribute.HT]: 0.1, [Attribute.INT]: 0.6 },
-    abilities: [ENEMY_ABILITIES_DB.FIREBALL],
-    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
-  },
-  {
-    name: 'Wyvern',
-    sprite: 'dragon',
-    baseExp: 300,
-    weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.2, [Attribute.HT]: 0.2, [Attribute.INT]: 0.2 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH, ENEMY_ABILITIES_DB.FIREBALL],
-    archetypes: ['Skirmisher', 'Berzerker'] as EnemyArchetype[],
-    isBoss: true,
-  },
-  // === BOSSES ===
-  {
-    name: 'Brigandine',
-    sprite: 'brigandine',
-    baseExp: 400,
-    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.5, [Attribute.HT]: 0.2, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.RANGED_ATTACK],
-    archetypes: ['Aggressor', 'Skirmisher'] as EnemyArchetype[],
-    isBoss: true,
-  },
-  {
-    name: 'Orc Warchief',
-    sprite: 'orc',
-    baseExp: 400,
-    weights: { [Attribute.ST]: 0.6, [Attribute.DX]: 0.1, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH],
-    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
-    isBoss: true,
-  },
-  {
-    name: 'Bear',
-    sprite: 'bear',
-    baseExp: 400,
-    weights: { [Attribute.ST]: 0.7, [Attribute.DX]: 0.1, [Attribute.HT]: 0.2, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH],
-    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
-    isBoss: true,
-  },
-  {
-    name: 'Warlock',
-    sprite: 'warlock',
-    baseExp: 400,
-    weights: { [Attribute.ST]: 0.1, [Attribute.DX]: 0.2, [Attribute.HT]: 0.1, [Attribute.INT]: 0.6 },
-    abilities: [ENEMY_ABILITIES_DB.FIREBALL, ENEMY_ABILITIES_DB.SHIELD],
-    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
-    isBoss: true,
-  },
-];
+// Ability DB, Enemy Abilities DB, Archetype Behaviors, Enemies DB
+// are all loaded from JSON via dataLoader.ts and re-exported above.
 
 
 // --- PIXEL ART ASSETS ---
