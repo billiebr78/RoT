@@ -292,10 +292,32 @@ export const generateLoot = (level: number, luck: number, bonusLuck: number = 0,
 };
 
 export const generateEnemy = (quadrantLevel: number, playerLevel: number, luck: number, enemyName?: string): Enemy => {
+    // Alias map: short names used in spawn pools → full names in ENEMIES_DB
+    const NAME_ALIASES: Record<string, string> = {
+        'Rat': 'Rat',
+        'Goblin': 'Goblin Grunt',
+        'Orc': 'Orc Warrior',
+        'Skeleton': 'Skeleton Soldier',
+        'Dark Knight': 'Dark Knight',
+        'Vampire': 'Vampire',
+        'Golem': 'Stone Golem',
+        'Sorcerer': 'Corrupted Sorcerer',
+        'Wyvern': 'Wyvern',
+        'Orc Shaman': 'Orc Shaman',
+        'Wolf': 'Wolf',
+        'Giant Bat': 'Giant Bat',
+        'Spider': 'Spider',
+        'Brigandine': 'Brigandine',
+        'Orc Warchief': 'Orc Warchief',
+        'Bear': 'Bear',
+        'Warlock': 'Warlock',
+    };
+
     // Find the enemy template by name, or fall back to random selection
     let template;
     if (enemyName) {
-        template = ENEMIES_DB.find(e => e.name === enemyName) || ENEMIES_DB[0];
+        const fullName = NAME_ALIASES[enemyName] || enemyName;
+        template = ENEMIES_DB.find(e => e.name === fullName) || ENEMIES_DB[0];
     } else {
         template = ENEMIES_DB[Math.floor(Math.random() * Math.min(ENEMIES_DB.length, 8))];
     }

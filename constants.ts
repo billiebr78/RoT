@@ -307,6 +307,7 @@ export const ENEMIES_DB = [
     weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.2, [Attribute.HT]: 0.2, [Attribute.INT]: 0.2 },
     abilities: [ENEMY_ABILITIES_DB.SMASH, ENEMY_ABILITIES_DB.FIREBALL],
     archetypes: ['Skirmisher', 'Berzerker'] as EnemyArchetype[],
+    isBoss: true,
   },
   // === BOSSES ===
   {

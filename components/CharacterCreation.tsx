@@ -87,6 +87,7 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
       equippedAbilities: [],
       unlockedAbilities: [],
       maxStage: 1,
+      currentHp: (attributes[Attribute.HT] + 2) * 15, // Base HT * 15 = max HP at creation
       bravery: 1,
       maxBravery: 1,
       mapRow: 8,

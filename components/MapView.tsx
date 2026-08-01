@@ -147,6 +147,10 @@ const MapView: React.FC<Props> = ({
             for (let c = 0; c < MAP_SIZE; c++) {
                 if (newMapState.cells[r][c].clearedTurnsRemaining > 0) {
                     newMapState.cells[r][c].clearedTurnsRemaining--;
+                    // Reset bossDefeated when cooldown expires
+                    if (newMapState.cells[r][c].clearedTurnsRemaining === 0) {
+                        newMapState.cells[r][c].bossDefeated = false;
+                    }
                 }
             }
         }
@@ -174,8 +178,10 @@ const MapView: React.FC<Props> = ({
             if (!cellState.bossDefeated) {
                 shouldSpawn = true;
                 enemyName = BOSS_NAMES[Math.floor(Math.random() * BOSS_NAMES.length)];
-                // Boss level: use the level range from adjacent cells or default to 30
-                enemyLevel = 30;
+                // Boss level: based on the terrain's difficulty zone.
+                // Estimate from distance from center (PLAYER_START).
+                const distFromCenter = Math.abs(row - PLAYER_START.row) + Math.abs(col - PLAYER_START.col);
+                enemyLevel = Math.min(35, Math.max(5, distFromCenter * 2));
             }
         } else if (spawnType.type === 'miniboss') {
             if (!cellState.bossDefeated) {

@@ -259,6 +259,9 @@ const App: React.FC = () => {
                               for (let c = 0; c < 16; c++) {
                                   if (mapState.cells[r][c].clearedTurnsRemaining > 0) {
                                       mapState.cells[r][c].clearedTurnsRemaining--;
+                                      if (mapState.cells[r][c].clearedTurnsRemaining === 0) {
+                                          mapState.cells[r][c].bossDefeated = false;
+                                      }
                                   }
                               }
                           }
