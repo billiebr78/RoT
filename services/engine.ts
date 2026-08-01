@@ -291,45 +291,54 @@ export const generateLoot = (level: number, luck: number, bonusLuck: number = 0,
   };
 };
 
-export const generateEnemy = (stage: number, playerLevel: number, luck: number): Enemy => {
-    const maxIndex = Math.min(ENEMIES_DB.length - 1, Math.floor(stage / 5)); 
-    const minIndex = Math.max(0, maxIndex - 2); 
-    const range = maxIndex - minIndex + 1;
-    const templateIndex = minIndex + Math.floor(Math.random() * range);
-    const template = ENEMIES_DB[templateIndex] || ENEMIES_DB[0];
+export const generateEnemy = (quadrantLevel: number, playerLevel: number, luck: number, enemyName?: string): Enemy => {
+    // Find the enemy template by name, or fall back to random selection
+    let template;
+    if (enemyName) {
+        template = ENEMIES_DB.find(e => e.name === enemyName) || ENEMIES_DB[0];
+    } else {
+        template = ENEMIES_DB[Math.floor(Math.random() * Math.min(ENEMIES_DB.length, 8))];
+    }
 
-    const isMiniBossCheck = stage % 5 === 0 && stage > 0;
-    let isBoss = false;
-    if (isMiniBossCheck) isBoss = true;
+    const isBoss = template.isBoss === true;
+    const N = quadrantLevel; // N = level of the quadrant
 
-    const totalPoints = playerLevel * 2.2 + 8; 
-    
+    const totalPoints = N * 2.2 + 8;
+
     const st = Math.floor(3 + (totalPoints * (template.weights[Attribute.ST] || 0)));
     const ht = Math.floor(3 + (totalPoints * (template.weights[Attribute.HT] || 0)));
     const dx = Math.floor(3 + (totalPoints * (template.weights[Attribute.DX] || 0)));
     const int = Math.floor(3 + (totalPoints * (template.weights[Attribute.INT] || 0)));
-    
-    let hp = ht * 18; 
-    const weaponDmg = playerLevel * 1.0;
-    const statDmg = st / 2; 
-    let damage = Math.max(1, Math.floor(weaponDmg + statDmg));
 
-    let expReward = Math.floor((template.baseExp * (1 + playerLevel * 0.5)));
-    let goldReward = Math.floor(((10 + stage * 2) * (0.8 + Math.random() * 0.4)) * 0.7);
-    
+    // HP = HT × 20 × (1 + N × 0.1)
+    let hp = Math.floor(ht * 20 * (1 + N * 0.1));
+
+    // Damage = baseDmg × (1 + N × 0.08)
+    const weaponDmg = N * 1.0;
+    const statDmg = st / 2;
+    let damage = Math.max(1, Math.floor((weaponDmg + statDmg) * (1 + N * 0.08)));
+
+    // XP = baseExp × (1 + N × 0.2)
+    let expReward = Math.floor(template.baseExp * (1 + N * 0.2));
+    let goldReward = Math.floor(((10 + N * 2) * (0.8 + Math.random() * 0.4)) * 0.7);
+
     let dropChance = 15;
     let luckBonus = 0;
-    let fearResist = 0; 
+    let fearResist = 0;
 
     if (isBoss) {
-        hp *= 3.0; 
-        damage *= 1.65; 
-        expReward *= 2.5; 
-        goldReward *= 3;
-        dropChance = 100; 
-        luckBonus = 20; 
-        fearResist = 10; 
+        hp = Math.floor(hp * 3.0);
+        damage = Math.floor(damage * 1.65);
+        expReward = Math.floor(expReward * 2.5);
+        goldReward = Math.floor(goldReward * 3);
+        dropChance = 100;
+        luckBonus = 20;
+        fearResist = 10;
     }
+
+    // Bear boss: 1.5x movement speed
+    let speedMult = isBoss ? 1.5 : 1.0;
+    if (template.name === 'Bear') speedMult *= 1.5;
 
     // Roll archetype: 50/50 between the enemy's two possible archetypes.
     // Bosses use the same archetype but with reduced flee threshold (5%).
@@ -350,7 +359,7 @@ export const generateEnemy = (stage: number, playerLevel: number, luck: number):
         maxHp: hp,
         hp: hp,
         damage: damage,
-        speed: (0.6 + (Math.random() * 0.4) + (stage * 0.02)) * (isBoss ? 1.5 : 1.0) * 1.25,
+        speed: (0.6 + (Math.random() * 0.4) + (N * 0.02)) * speedMult * 1.25,
         range: 100, // Matched enemy reach
         expReward,
         goldReward,

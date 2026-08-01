@@ -21,7 +21,7 @@ export const getHp = (ht: number) => ht * 15;
  * (Hub used 25 * lvl^2.1, GameLoop used 20 * lvl^2.5) which caused the
  * progress bar to desync from actual level-ups.
  */
-export const getExpForLevel = (level: number): number => Math.floor(20 * Math.pow(level, 2.5));
+export const getExpForLevel = (level: number): number => Math.floor(30 * Math.pow(level, 2.2));
 export const getCritChance = (dx: number) => Math.min(50, dx * 0.5); // Cap at 50%
 export const getEvasion = (dx: number) => Math.min(40, dx * 0.4); // Cap at 40%
 /**
@@ -151,8 +151,12 @@ export const ABILITY_DB: Ability[] = [
 
 export const ENEMY_ABILITIES_DB: Record<string, EnemyAbility> = {
   SMASH: { id: 'e_smash', name: 'Heavy Smash', damageMult: 1.8, effect: 'stun', cooldown: 8000, range: 60, castTime: 1500 },
-  DRAIN: { id: 'e_drain', name: 'Life Drain', damageMult: 1.2, effect: 'lifesteal', cooldown: 10000, range: 60, castTime: 1200 },
+  DRAIN: { id: 'e_drain', name: 'Life Drain', damageMult: 1.2, effect: 'lifesteal', cooldown: 10000, range: 60, castTime: 1000 },
   FIREBALL: { id: 'e_fire', name: 'Shadow Bolt', damageMult: 1.4, effect: 'ranged', cooldown: 6000, range: 400, castTime: 1000 },
+  WEB: { id: 'e_web', name: 'Web', damageMult: 0.5, effect: 'stun', cooldown: 12000, range: 200, castTime: 1000 },
+  STONE_SKIN: { id: 'e_stone', name: 'Stone Skin', damageMult: 0, effect: 'buff', cooldown: 20000, range: 0, castTime: 2000 },
+  SHIELD: { id: 'e_shield', name: 'Shield', damageMult: 0, effect: 'barrier', cooldown: 15000, range: 0, castTime: 2000 },
+  RANGED_ATTACK: { id: 'e_ranged', name: 'Ranged Attack', damageMult: 1.5, effect: 'ranged', cooldown: 5000, range: 400, castTime: 2000 },
 };
 
 // === ENEMY ARCHETYPES ===
@@ -201,6 +205,14 @@ export const BOSS_FLEE_THRESHOLD = 0.05;
 
 export const ENEMIES_DB = [
   {
+    name: 'Rat',
+    sprite: 'rat',
+    baseExp: 5,
+    weights: { [Attribute.ST]: 0.2, [Attribute.DX]: 0.5, [Attribute.HT]: 0.2, [Attribute.INT]: 0.1 },
+    abilities: [],
+    archetypes: ['Coward', 'Berzerker'] as EnemyArchetype[],
+  },
+  {
     name: 'Goblin Grunt',
     sprite: 'goblin',
     baseExp: 10,
@@ -225,6 +237,38 @@ export const ENEMIES_DB = [
     archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
   },
   {
+    name: 'Orc Shaman',
+    sprite: 'orc_shaman',
+    baseExp: 70,
+    weights: { [Attribute.ST]: 0.2, [Attribute.DX]: 0.2, [Attribute.HT]: 0.2, [Attribute.INT]: 0.4 },
+    abilities: [ENEMY_ABILITIES_DB.FIREBALL],
+    archetypes: ['Coward', 'Skirmisher'] as EnemyArchetype[],
+  },
+  {
+    name: 'Wolf',
+    sprite: 'wolf',
+    baseExp: 90,
+    weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.4, [Attribute.HT]: 0.2, [Attribute.INT]: 0.0 },
+    abilities: [],
+    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
+  },
+  {
+    name: 'Giant Bat',
+    sprite: 'bat',
+    baseExp: 50,
+    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.4, [Attribute.HT]: 0.1, [Attribute.INT]: 0.2 },
+    abilities: [ENEMY_ABILITIES_DB.DRAIN],
+    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
+  },
+  {
+    name: 'Spider',
+    sprite: 'spider',
+    baseExp: 70,
+    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.3, [Attribute.HT]: 0.2, [Attribute.INT]: 0.2 },
+    abilities: [ENEMY_ABILITIES_DB.WEB, ENEMY_ABILITIES_DB.DRAIN],
+    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
+  },
+  {
     name: 'Dark Knight',
     sprite: 'knight',
     baseExp: 150,
@@ -245,7 +289,7 @@ export const ENEMIES_DB = [
     sprite: 'golem',
     baseExp: 250,
     weights: { [Attribute.ST]: 0.7, [Attribute.DX]: 0.0, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
-    abilities: [ENEMY_ABILITIES_DB.SMASH],
+    abilities: [ENEMY_ABILITIES_DB.SMASH, ENEMY_ABILITIES_DB.STONE_SKIN],
     archetypes: ['Defender', 'Aggressor'] as EnemyArchetype[],
   },
   {
@@ -259,10 +303,47 @@ export const ENEMIES_DB = [
   {
     name: 'Wyvern',
     sprite: 'dragon',
-    baseExp: 500,
+    baseExp: 300,
     weights: { [Attribute.ST]: 0.4, [Attribute.DX]: 0.2, [Attribute.HT]: 0.2, [Attribute.INT]: 0.2 },
     abilities: [ENEMY_ABILITIES_DB.SMASH, ENEMY_ABILITIES_DB.FIREBALL],
     archetypes: ['Skirmisher', 'Berzerker'] as EnemyArchetype[],
+  },
+  // === BOSSES ===
+  {
+    name: 'Brigandine',
+    sprite: 'brigandine',
+    baseExp: 400,
+    weights: { [Attribute.ST]: 0.3, [Attribute.DX]: 0.5, [Attribute.HT]: 0.2, [Attribute.INT]: 0.0 },
+    abilities: [ENEMY_ABILITIES_DB.RANGED_ATTACK],
+    archetypes: ['Aggressor', 'Skirmisher'] as EnemyArchetype[],
+    isBoss: true,
+  },
+  {
+    name: 'Orc Warchief',
+    sprite: 'orc',
+    baseExp: 400,
+    weights: { [Attribute.ST]: 0.6, [Attribute.DX]: 0.1, [Attribute.HT]: 0.3, [Attribute.INT]: 0.0 },
+    abilities: [ENEMY_ABILITIES_DB.SMASH],
+    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
+    isBoss: true,
+  },
+  {
+    name: 'Bear',
+    sprite: 'bear',
+    baseExp: 400,
+    weights: { [Attribute.ST]: 0.7, [Attribute.DX]: 0.1, [Attribute.HT]: 0.2, [Attribute.INT]: 0.0 },
+    abilities: [ENEMY_ABILITIES_DB.SMASH],
+    archetypes: ['Berzerker', 'Aggressor'] as EnemyArchetype[],
+    isBoss: true,
+  },
+  {
+    name: 'Warlock',
+    sprite: 'warlock',
+    baseExp: 400,
+    weights: { [Attribute.ST]: 0.1, [Attribute.DX]: 0.2, [Attribute.HT]: 0.1, [Attribute.INT]: 0.6 },
+    abilities: [ENEMY_ABILITIES_DB.FIREBALL, ENEMY_ABILITIES_DB.SHIELD],
+    archetypes: ['Skirmisher', 'Coward'] as EnemyArchetype[],
+    isBoss: true,
   },
 ];
 
@@ -740,6 +821,143 @@ export const SPRITE_LIBRARY: Record<string, SpriteFrame> = {
             'KRRKRRRRKRRK', // Wings
             'KRRKRRRRKRRK',
             'KKK_KKKK_KKK'
+        ]
+    },
+    // === NEW ENEMY SPRITES ===
+    'rat': {
+        palette: PALETTES,
+        rows: [
+            '____KKKK____',
+            '___KSSSSK___',
+            '__KSKSSKSK__', // Ears
+            '__KSSSSSSK__',
+            '__KSVVVVSK__', // Red eyes
+            '__KSSSSSSK__',
+            '___KSSSSK___',
+            '__KSSSSSSK__',
+            '_KSSSSSSSSK_',
+            '_KSSSSSSSSK_', // Body
+            '__KSSKSSK___', // Legs
+            '__KKK_KKK___'
+        ]
+    },
+    'orc_shaman': {
+        palette: PALETTES,
+        rows: [
+            '___KPPPPK___', // Hood
+            '__KPPPPPPK__',
+            '__KVYPPYVK__', // Glowing eyes
+            '__KPPPPPPK__',
+            '___KPPPPK___',
+            '__KPPPPPPK__',
+            '_KPPBPPBPPK_', // Bone decorations
+            '_KPPPPPPPPK_',
+            '_KPPPBBPPPK_',
+            '_KPPPPPPPPK_',
+            '__KPPKPPK___',
+            '__KKK_KKK___'
+        ]
+    },
+    'wolf': {
+        palette: PALETTES,
+        rows: [
+            '__KK____KK__', // Pointed ears
+            '__KDK__KDK__',
+            '_KDDDDDDDDK_',
+            'KDDKDDDDKDDK', // Snout
+            'KDDKYDDYKDDK', // Yellow eyes
+            'KDDKKKKKDDK_',
+            '_KDDDDDDDDK_',
+            '__KDDDDDDK__',
+            '__KDDDDDDK__',
+            '__KDKDDKDK__', // Legs
+            '__KDKDDKDK__',
+            '__KKK_KKK___'
+        ]
+    },
+    'bat': {
+        palette: PALETTES,
+        rows: [
+            'K__________K',
+            'KK________KK',
+            'KDK______KDK', // Wings spread
+            'KDDK____KDDK',
+            '_KDDKKKKDDK_',
+            '_KDDSSSSDDK_', // Body
+            '_KDDSKSKDDK_', // Eyes
+            '_KDDSSSSDDK_',
+            '__KDDDDDDK__',
+            '__KDDDDDDK__',
+            '___KDDDDK___',
+            '___KKKKKK___'
+        ]
+    },
+    'spider': {
+        palette: PALETTES,
+        rows: [
+            'K__________K',
+            'KK________KK',
+            'KDK______KDK', // Legs spread
+            '_KDK____KDK_',
+            '__KDKKKKDK__',
+            '__KDDDDDDK__', // Body
+            '__KDYDDYDK__', // Eyes
+            '__KDDKKDDK__',
+            '__KDDDDDDK__',
+            '__KDDDDDDK__',
+            '___KDDDDK___',
+            '___KKKKKK___'
+        ]
+    },
+    'bear': {
+        palette: PALETTES,
+        rows: [
+            '_KK____KK___', // Round ears
+            '_KDK__KDK___',
+            'KDDDKKKDDK__', // Large head
+            'KDDDDDDDDDK_',
+            'KDKYDDYKDDK_', // Eyes
+            'KDKKKKKKDDK_',
+            '_KDDDDDDDK__',
+            'KDDDDDDDDK__', // Massive body
+            'KDDDDDDDDK__',
+            '_KDDDDDDK___',
+            '_KDDKKDDK___', // Legs
+            '_KKK__KKK___'
+        ]
+    },
+    'brigandine': {
+        palette: PALETTES,
+        rows: [
+            '___KKKKKK___',
+            '__KDDDDDDK__', // Hood up
+            '__KDKRRRKDK__', // Mask with red eyes
+            '__KDDDDDDK__',
+            '___KKKKKK___',
+            '__KDDDDDDK__', // Cloak
+            '_KDKDDDDKDK_',
+            '_KDKDDDDKDK_',
+            '_KKKDDDDKKK_',
+            '__KDDDDDDK__',
+            '__KDK__KDK__', // Legs + dagger
+            '__KKK__KKK__'
+        ]
+    },
+    'warlock': {
+        palette: PALETTES,
+        rows: [
+            '___KPPPPK___', // Tall hood
+            '__KPPPPPPK__',
+            '_KPPPPPPPPK_',
+            '_KPKYPPYKPK_', // Glowing eyes deep in hood
+            '_KPKKKKKKPK_',
+            '__KPPPPPPK__',
+            '_KPPPPPPPPK_',
+            '_KPPBPPBPPK_', // Magical runes
+            '_KPPPPPPPPK_',
+            '_KPPPPPPPPK_',
+            '__KPPKPPK___',
+            '__KKK_KKK___'
         ]
     },
 };

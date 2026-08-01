@@ -165,7 +165,16 @@ export interface Character {
   unlockedAbilities: string[];
   abilityLevels?: Record<string, number>;
   maxStage: number;
-  
+
+  // Bravery: spent to retreat without XP penalty. +1 per 10 levels,
+  // recover 1 per victory, full recovery on level up or death.
+  bravery?: number;
+  maxBravery?: number;
+
+  // Map position (0-indexed row/col on the 16x16 grid)
+  mapRow?: number;
+  mapCol?: number;
+
   // Shop Persistence
   lastShopRefresh?: number;
   shopData?: {
