@@ -120,6 +120,7 @@ const MapView: React.FC<Props> = ({
     }, [combatResult]);
 
     const canMoveTo = (row: number, col: number): boolean => {
+        if (combatResult) return false; // Block movement while processing combat result
         if (row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) return false;
         const dr = Math.abs(row - playerPos.row);
         const dc = Math.abs(col - playerPos.col);
