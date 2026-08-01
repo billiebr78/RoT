@@ -1659,6 +1659,10 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy }) 
         const newStats = calculateTotalStats(updatedChar);
         const newMaxHp = Math.max(10, getHp(newStats[Attribute.HT]));
         updatedChar.currentHp = newMaxHp;
+        // Full Bravery recovery on level up
+        const newMaxBravery = 1 + Math.floor(lvl / 5);
+        updatedChar.bravery = newMaxBravery;
+        updatedChar.maxBravery = newMaxBravery;
         characterRef.current = updatedChar;
         // Refill playerHp in the gameState so the next fight starts at full
         state.playerHp = newMaxHp;
@@ -1721,28 +1725,30 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy }) 
   };
 
   // Player fled the battle by staying in the left flee zone for 5 seconds.
-  // Returns to town WITHOUT the current fight's rewards (exp/gold/loot are
-  // discarded) and applies a 10% XP penalty on the current level's progress.
-  // The penalty cannot cause a level-down: XP is floored at 0 (since
-  // character.exp is "progress since last level up", not total XP).
-  // No gold penalty. Stage does NOT advance (player stays on the same stage).
-  // Shows a "You ran to fight another day" summary with only a Town button.
+  // If the player has Bravery: spend 1 Bravery, NO XP penalty.
+  // If the player has no Bravery: apply 10% XP penalty on current level progress.
+  // In both cases: no rewards from this fight, stage doesn't advance.
+  // Shows "You ran to fight another day" summary.
   const handleFlee = () => {
       const state = gameState.current;
       const updatedChar = { ...characterRef.current };
       updatedChar.currentHp = state.playerHp;
       updatedChar.maxStage = state.stage; // don't advance
 
-      // XP penalty: lose 10% of current level progress, floored at 0
-      const penalty = Math.floor(updatedChar.exp * 0.10);
-      updatedChar.exp = Math.max(0, updatedChar.exp - penalty);
+      let penalty = 0;
+      const currentBravery = updatedChar.bravery ?? 0;
 
-      // Show the "player fled" summary BEFORE exiting. The summary's Town
-      // button calls onExit(updatedChar) to actually return to town.
+      if (currentBravery > 0) {
+          // Spend 1 Bravery instead of XP penalty
+          updatedChar.bravery = currentBravery - 1;
+      } else {
+          // No Bravery — apply 10% XP penalty
+          penalty = Math.floor(updatedChar.exp * 0.10);
+          updatedChar.exp = Math.max(0, updatedChar.exp - penalty);
+      }
+
       setBattleSummary({ show: true, exp: 0, gold: 0, drops: [], isLevelUp: false, outcome: 'playerFled', xpPenalty: penalty });
       state.isPaused = true;
-      // Store the updated char so the BattleSummary's Town button can call onExit
-      // with the penalized character. We stash it on the gameState ref.
       (state as any).pendingFleeChar = updatedChar;
       drawGame();
   };

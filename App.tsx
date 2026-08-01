@@ -104,7 +104,7 @@ const App: React.FC = () => {
       newChar.gold = Math.floor(newChar.gold * (1 - lossPct));
       
       // Full Bravery recovery on death
-      const maxBravery = 1 + Math.floor(newChar.level / 10);
+      const maxBravery = 1 + Math.floor(newChar.level / 5);
       newChar.bravery = maxBravery;
       newChar.maxBravery = maxBravery;
 
