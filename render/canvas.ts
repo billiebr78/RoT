@@ -406,6 +406,20 @@ export const draw = (
     for (let i = 0; i < 40; i++) {
         ctx.fillRect(i * 50, GROUND_Y + 4 + (i % 3) * 4, 8, 4);
     }
+    // Arena boundary markers — dashed vertical lines at flee zone edges
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(FLEE_ZONE_WIDTH, GROUND_Y - 120);
+    ctx.lineTo(FLEE_ZONE_WIDTH, GROUND_Y);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(ARENA_WIDTH - FLEE_ZONE_WIDTH, GROUND_Y - 120);
+    ctx.lineTo(ARENA_WIDTH - FLEE_ZONE_WIDTH, GROUND_Y);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     // Flee zone markers (world space, at arena edges)
     // Left zone (player escape) — green tint

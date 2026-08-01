@@ -222,7 +222,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
   const spawnEnemy = () => {
     const stats = gameState.current.cachedTotalStats || calculateTotalStats(character);
     // Use preset enemy from map if available, otherwise generate from stage
-    const enemy = presetEnemy || generateEnemy(gameState.current.stage, character.level, stats[Attribute.LUCK]);
+    const enemy = presetEnemy || generateEnemy(Math.max(1, character.level), character.level, stats[Attribute.LUCK]);
     gameState.current.enemy = enemy;
     gameState.current.enemyX = ENEMY_SPAWN_X;
     gameState.current.enemyAI = { state: 'IDLE', timer: 0, abilityToCast: null, isPursuing: false };
@@ -1669,7 +1669,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     const exp = state.enemy.expReward;
     const gold = state.enemy.goldReward;
     const drops: Item[] = [];
-    const loot = generateLoot(state.stage, totalStats[Attribute.LUCK], state.enemy.luckBonus || 0);
+    const loot = generateLoot(state.enemy.level || character.level, totalStats[Attribute.LUCK], state.enemy.luckBonus || 0);
     if (loot) drops.push(loot);
 
     state.expGained += exp;
