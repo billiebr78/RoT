@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [mapPrevPos, setMapPrevPos] = useState<{ row: number; col: number } | null>(null);
   const [combatResult, setCombatResult] = useState<'win' | 'flee' | 'enemyFled' | null>(null);
   const [restHealInfo, setRestHealInfo] = useState<number | null>(null);
+  const [mapReloadKey, setMapReloadKey] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem('rot_saves');
@@ -114,6 +115,7 @@ const App: React.FC = () => {
       newChar.mapCol = PLAYER_START.col;
 
       saveGame(newChar);
+      setMapReloadKey(k => k + 1);
       setScreen('map');
   };
 
@@ -218,6 +220,7 @@ const App: React.FC = () => {
 
       {screen === 'map' && character && (
         <MapView
+          key={`map-${character.id}-${mapReloadKey}`}
           character={character}
           combatResult={combatResult}
           prevPos={mapPrevPos}
@@ -241,6 +244,7 @@ const App: React.FC = () => {
               saveGame(updatedChar);
               setCombatResult(result || 'win');
               setPendingEnemy(null);
+              setMapReloadKey(k => k + 1);
               setScreen('map');
           }}
           onRest={(updatedChar, healAmount) => {
@@ -264,6 +268,7 @@ const App: React.FC = () => {
               } catch (e) { /* ignore */ }
               setRestHealInfo(healAmount);
               setPendingEnemy(null);
+              setMapReloadKey(k => k + 1);
               setScreen('map');
           }}
           onDeath={handleDeath}
@@ -286,7 +291,7 @@ const App: React.FC = () => {
 
       {/* Rest heal dialog */}
       {restHealInfo !== null && screen === 'map' && (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setRestHealInfo(null)}>
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4" onClick={() => setRestHealInfo(null)} style={{zIndex: 200}}>
           <div className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl p-6 text-center max-w-xs">
             <h2 className="font-serif text-xl text-emerald-300 mb-2">You Rested</h2>
             <p className="text-medieval-200 text-sm mb-4">
