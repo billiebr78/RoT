@@ -165,16 +165,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     const handleKeyDown = (e: KeyboardEvent) => { 
         if (e.repeat) return;
         
-        if (battleSummaryRef.current?.show) {
-            if (e.code === 'KeyH' || e.code === 'Enter') {
-                handleContinueJourney();
-                return;
-            }
-            if (e.code === 'KeyJ' || e.code === 'Escape') {
-                handleExit();
-                return;
-            }
-        }
+        // When battle summary is showing, don't intercept keys here.
+        // BattleSummary has its own keyboard listener for H (Rest) and J (Journey).
+        if (battleSummaryRef.current?.show) return;
 
         gameState.current.keys[e.code] = true; 
         handleActionKey(e.code);
@@ -1697,13 +1690,18 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
   // Rest: heal HT * 1.2 HP, advance 5 turns on the map.
   const handleRest = () => {
-      if (!onRest) return;
       const stats = calculateTotalStats(characterRef.current);
       const healAmount = Math.floor(stats[Attribute.HT] * 1.2);
-      const updatedChar = { ...calculateExitState() };
       const maxHp = getHp(stats[Attribute.HT]);
-      updatedChar.currentHp = Math.min(maxHp, (updatedChar.currentHp || 0) + healAmount);
-      onRest(updatedChar, healAmount);
+      const updatedChar = { ...characterRef.current };
+      updatedChar.gold += gameState.current.goldGained;
+      updatedChar.stash = [...updatedChar.stash, ...gameState.current.lootFound];
+      updatedChar.currentHp = Math.min(maxHp, (gameState.current.playerHp || 0) + healAmount);
+      if (onRest) {
+          onRest(updatedChar, healAmount);
+      } else {
+          onExit(updatedChar, 'win');
+      }
   };
 
   const calculateExitState = () => {
