@@ -12,7 +12,7 @@ import {
 } from '../game/mapData';
 import { MapState, MapCellState, createInitialMapState } from '../game/mapState';
 import { getHp } from '../constants';
-import { User, Heart, Map as MapIcon, LogOut, ChevronLeft, ArrowRight } from 'lucide-react';
+import { User, Heart, Map as MapIcon, LogOut, ChevronLeft, ArrowRight, Sword as SwordIcon } from 'lucide-react';
 
 interface Props {
     character: Character;
@@ -71,6 +71,7 @@ const MapView: React.FC<Props> = ({
         col: character.mapCol ?? PLAYER_START.col,
     });
     const [message, setMessage] = useState<string>('');
+    const [showRetreatOption, setShowRetreatOption] = useState(false);
     const processedResult = useRef(false);
 
     // Save map state on change
@@ -194,7 +195,16 @@ const MapView: React.FC<Props> = ({
         if (shouldSpawn && enemyName) {
             const stats = calculateTotalStats(character);
             const enemy = generateEnemy(enemyLevel, character.level, stats[Attribute.LUCK], enemyName);
-            onEnterCombat(enemy, prev);
+            // If player has Bravery, offer retreat option instead of forcing combat
+            if (bravery > 0) {
+                setMessage(`A ${enemy.name} appeared! Use Bravery to retreat?`);
+                // Store enemy and prev pos for the retreat/engage decision
+                (window as any).__pendingEnemy = enemy;
+                (window as any).__pendingPrev = prev;
+                setShowRetreatOption(true);
+            } else {
+                onEnterCombat(enemy, prev);
+            }
         } else {
             const label = TERRAIN_LABELS[terrain];
             setMessage(`You entered ${label}. No enemies in sight.`);
@@ -329,35 +339,70 @@ const MapView: React.FC<Props> = ({
                 {message && (
                     <div className="text-center text-sm text-medieval-300 mb-2 italic">{message}</div>
                 )}
-                <div className="flex justify-between items-center gap-2">
-                    <div className="text-xs sm:text-sm text-medieval-400">
-                        <span className="text-medieval-200 font-bold">
-                            {isInCity ? cityName : TERRAIN_LABELS[currentTerrain]}
-                        </span>
-                        {!isInCity && adjacentCells.length > 0 && (
-                            <span className="ml-2 text-medieval-500">
-                                Tap highlighted cells to move
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex gap-2">
-                        {isInCity && (
-                            <button
-                                onClick={onEnterTown}
-                                className="px-3 py-2 bg-emerald-800 hover:bg-emerald-700 border border-emerald-500 text-white font-bold rounded flex items-center gap-1.5 text-sm"
-                            >
-                                <MapIcon size={16} /> Enter Town
-                            </button>
-                        )}
+                {showRetreatOption ? (
+                    <div className="flex justify-center gap-3 py-2">
                         <button
-                            onClick={onLogout}
-                            className="px-3 py-2 bg-red-900/50 hover:bg-red-900 rounded border border-red-800 text-sm"
+                            onClick={() => {
+                                // Engage combat
+                                const enemy = (window as any).__pendingEnemy;
+                                const prev = (window as any).__pendingPrev;
+                                (window as any).__pendingEnemy = null;
+                                (window as any).__pendingPrev = null;
+                                setShowRetreatOption(false);
+                                onEnterCombat(enemy, prev);
+                            }}
+                            className="px-4 py-2 bg-red-800 hover:bg-red-700 border border-red-500 text-white font-bold rounded flex items-center gap-1.5 text-sm"
                         >
-                            <LogOut size={16} className="sm:hidden" />
-                            <span className="hidden sm:inline">Log Out</span>
+                            <SwordIcon size={16} /> Fight
+                        </button>
+                        <button
+                            onClick={() => {
+                                // Retreat: spend 1 Bravery, revert to previous position
+                                const prev = (window as any).__pendingPrev;
+                                (window as any).__pendingEnemy = null;
+                                (window as any).__pendingPrev = null;
+                                const newChar = { ...character, bravery: bravery - 1 };
+                                onUpdateCharacter(newChar);
+                                setPlayerPos(prev);
+                                setShowRetreatOption(false);
+                                setMessage('You used 1 Bravery to retreat safely.');
+                            }}
+                            className="px-4 py-2 bg-cyan-800 hover:bg-cyan-700 border border-cyan-500 text-white font-bold rounded flex items-center gap-1.5 text-sm"
+                        >
+                            <ChevronLeft size={16} /> Retreat (-1 Bravery)
                         </button>
                     </div>
-                </div>
+                ) : (
+                    <div className="flex justify-between items-center gap-2">
+                        <div className="text-xs sm:text-sm text-medieval-400">
+                            <span className="text-medieval-200 font-bold">
+                                {isInCity ? cityName : TERRAIN_LABELS[currentTerrain]}
+                            </span>
+                            {!isInCity && adjacentCells.length > 0 && (
+                                <span className="ml-2 text-medieval-500">
+                                    Tap highlighted cells to move
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            {isInCity && (
+                                <button
+                                    onClick={onEnterTown}
+                                    className="px-3 py-2 bg-emerald-800 hover:bg-emerald-700 border border-emerald-500 text-white font-bold rounded flex items-center gap-1.5 text-sm"
+                                >
+                                    <MapIcon size={16} /> Enter Town
+                                </button>
+                            )}
+                            <button
+                                onClick={onLogout}
+                                className="px-3 py-2 bg-red-900/50 hover:bg-red-900 rounded border border-red-800 text-sm"
+                            >
+                                <LogOut size={16} className="sm:hidden" />
+                                <span className="hidden sm:inline">Log Out</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

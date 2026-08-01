@@ -86,7 +86,11 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
       stash: [],
       equippedAbilities: [],
       unlockedAbilities: [],
-      maxStage: 1
+      maxStage: 1,
+      bravery: 1,
+      maxBravery: 1,
+      mapRow: 8,
+      mapCol: 7,
     };
     onCharacterCreated(newChar);
   };
