@@ -108,6 +108,18 @@ const App: React.FC = () => {
       setScreen('hub');
   };
 
+  // Keyboard shortcut: press J on the death screen to revive
+  useEffect(() => {
+      if (screen !== 'dead') return;
+      const handleKeyDown = (e: KeyboardEvent) => {
+          if (e.code === 'KeyJ') {
+              handleRevive();
+          }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [screen]);
+
   return (
     <div className="fixed inset-0 bg-medieval-900 text-white font-sans overflow-y-auto">
       {screen === 'splash' && (
@@ -215,7 +227,7 @@ const App: React.FC = () => {
               onClick={handleRevive}
               className="px-6 sm:px-8 py-3 sm:py-4 bg-medieval-800 border border-medieval-500 hover:bg-medieval-700 text-white rounded font-bold text-base sm:text-xl"
             >
-              Return to Town
+              Return to Town [J]
             </button>
         </div>
       )}
