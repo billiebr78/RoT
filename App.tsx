@@ -247,7 +247,7 @@ const App: React.FC = () => {
               saveGame(updatedChar);
               // Advance 5 turns on the map (decrement cooldowns 5 times)
               try {
-                  const saved = localStorage.getItem('rot_map_state');
+                  const saved = localStorage.getItem(`rot_map_state_${updatedChar.id}`);
                   if (saved) {
                       const mapState = JSON.parse(saved);
                       for (let i = 0; i < 5; i++) {
@@ -259,7 +259,7 @@ const App: React.FC = () => {
                               }
                           }
                       }
-                      localStorage.setItem('rot_map_state', JSON.stringify(mapState));
+                      localStorage.setItem(`rot_map_state_${updatedChar.id}`, JSON.stringify(mapState));
                   }
               } catch (e) { /* ignore */ }
               setRestHealInfo(healAmount);

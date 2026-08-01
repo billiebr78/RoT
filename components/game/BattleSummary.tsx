@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Item } from '../../types';
 import { Trophy, Bed, ChevronsRight, Footprints, AlertTriangle } from 'lucide-react';
 
@@ -20,9 +20,26 @@ interface Props {
 }
 
 const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealAmount }) => {
-    if (!summary) return null;
+    const outcome = summary?.outcome || 'victory';
+    const showButtons = summary && outcome !== 'playerFled';
 
-    const outcome = summary.outcome || 'victory';
+    // Keyboard: H = Rest, J = Journey Onward (or Map if fled)
+    useEffect(() => {
+        if (!summary) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.code === 'KeyH' && showButtons) {
+                e.preventDefault();
+                onRest();
+            } else if (e.code === 'KeyJ' || e.code === 'Enter') {
+                e.preventDefault();
+                onContinue();
+            }
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [summary, showButtons, onRest, onContinue]);
+
+    if (!summary) return null;
 
     let icon: React.ReactNode;
     let title: string;
@@ -144,7 +161,7 @@ const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealA
                             className="w-full py-2 bg-medieval-700 hover:bg-medieval-600 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-medieval-500 active:scale-95 transition-transform"
                             style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
                         >
-                            <ChevronsRight size={16} /> Map
+                            <ChevronsRight size={16} /> Map [J]
                         </button>
                     </div>
                 )}
@@ -158,15 +175,15 @@ const BattleSummary: React.FC<Props> = ({ summary, onRest, onContinue, restHealA
                             style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
                         >
                             <Bed size={16} />
-                            <span>Rest</span>
-                            <span className="text-blue-300 text-[10px]" style={{ fontSize: 'clamp(8px, 2vmin, 10px)' }}>+{restHealAmount} HP (5 turns)</span>
+                            <span>Rest [H]</span>
+                            <span className="text-blue-300" style={{ fontSize: 'clamp(8px, 2vmin, 10px)' }}>+{restHealAmount} HP (5 turns)</span>
                         </button>
                         <button
                             onClick={onContinue}
                             className="flex-1 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-1.5 border border-emerald-600 active:scale-95 transition-transform"
                             style={{ fontSize: 'clamp(12px, 3vmin, 15px)' }}
                         >
-                            Journey Onward <ChevronsRight size={16} />
+                            Journey Onward [J] <ChevronsRight size={16} />
                         </button>
                     </div>
                 )}

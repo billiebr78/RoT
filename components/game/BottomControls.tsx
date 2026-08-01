@@ -59,15 +59,15 @@ const BottomControls: React.FC<Props> = ({
                 </button>
             </div>
 
-            {/* Center: Player + Enemy info */}
-            <div className="flex-1 flex flex-col gap-1 min-w-0 max-w-md">
-                {/* Player info */}
-                <div className="bg-medieval-900/90 border border-medieval-500 rounded p-1 shadow-lg">
+            {/* Center: Player (left) + Enemy (right) info side by side */}
+            <div className="flex-1 flex gap-1 sm:gap-2 min-w-0 max-w-lg items-end">
+                {/* Player info (left) */}
+                <div className="flex-1 bg-medieval-900/90 border border-medieval-500 rounded p-1 shadow-lg min-w-0">
                     <div className="flex justify-between items-baseline mb-0.5 px-0.5">
                         <span className="font-bold truncate text-medieval-200" style={{ fontSize: 'clamp(9px, 2.2vmin, 12px)' }}>
                             {character.name}
                         </span>
-                        <span className="text-medieval-400" style={{ fontSize: 'clamp(8px, 1.8vmin, 10px)' }}>
+                        <span className="text-medieval-400 shrink-0" style={{ fontSize: 'clamp(8px, 1.8vmin, 10px)' }}>
                             L{character.level}
                         </span>
                     </div>
@@ -106,10 +106,10 @@ const BottomControls: React.FC<Props> = ({
                     </div>
                 </div>
 
-                {/* Enemy info */}
+                {/* Enemy info (right) */}
                 <div
                     ref={enemyContainerRef}
-                    className="bg-medieval-900/90 border border-medieval-500 rounded p-1 shadow-lg transition-opacity duration-300"
+                    className="flex-1 bg-medieval-900/90 border border-medieval-500 rounded p-1 shadow-lg transition-opacity duration-300 min-w-0"
                 >
                     <div className="flex justify-between items-baseline mb-0.5 px-0.5">
                         <span className="font-bold truncate text-red-300" style={{ fontSize: 'clamp(9px, 2.2vmin, 12px)' }}>

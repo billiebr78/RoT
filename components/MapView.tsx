@@ -47,17 +47,17 @@ const TERRAIN_LABELS: Record<TerrainType, string> = {
     Castle: 'Castle', Cavern: 'Cavern', Water: 'Water', Rock: 'Rock', Lava: 'Lava',
 };
 
-const loadMapState = (): MapState => {
+const loadMapState = (charId: string): MapState => {
     try {
-        const saved = localStorage.getItem('rot_map_state');
+        const saved = localStorage.getItem(`rot_map_state_${charId}`);
         if (saved) return JSON.parse(saved);
     } catch (e) { /* ignore */ }
     return createInitialMapState(PLAYER_START.row, PLAYER_START.col);
 };
 
-const saveMapState = (state: MapState) => {
+const saveMapState = (state: MapState, charId: string) => {
     try {
-        localStorage.setItem('rot_map_state', JSON.stringify(state));
+        localStorage.setItem(`rot_map_state_${charId}`, JSON.stringify(state));
     } catch (e) { /* ignore */ }
 };
 
@@ -65,7 +65,7 @@ const MapView: React.FC<Props> = ({
     character, combatResult, prevPos, onClearCombatResult,
     onEnterCombat, onEnterTown, onLogout, onUpdateCharacter,
 }) => {
-    const [mapState, setMapState] = useState<MapState>(loadMapState);
+    const [mapState, setMapState] = useState<MapState>(() => loadMapState(character.id));
     const [playerPos, setPlayerPos] = useState({
         row: character.mapRow ?? PLAYER_START.row,
         col: character.mapCol ?? PLAYER_START.col,
@@ -75,7 +75,7 @@ const MapView: React.FC<Props> = ({
 
     // Save map state on change
     useEffect(() => {
-        saveMapState(mapState);
+        saveMapState(mapState, character.id);
     }, [mapState]);
 
     // Handle combat result on mount or when combatResult changes
