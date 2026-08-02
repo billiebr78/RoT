@@ -245,7 +245,11 @@ const App: React.FC = () => {
               saveGame(updatedChar);
               setCombatResult(result || 'win');
               setPendingEnemy(null);
-              setMapReloadKey(k => k + 1);
+              // Do NOT bump mapReloadKey here — it forces MapView to remount
+              // and reload from localStorage, which races with the
+              // combatResult useEffect that needs to update the in-memory
+              // mapState. Without the remount, MapView keeps its state and
+              // the combatResult effect applies cleanly on top.
               setScreen('map');
           }}
           onRest={(updatedChar, healAmount) => {

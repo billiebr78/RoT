@@ -235,6 +235,7 @@ export const SPRITE_LIBRARY: Record<string, SpriteFrame> = Object.fromEntries(
       if (def.width !== undefined) entry.width = def.width as number;
       if (def.height !== undefined) entry.height = def.height as number;
       if (def.flipped === true) entry.flipped = true;
+      if (def.scaleMultiplier !== undefined) entry.scaleMultiplier = def.scaleMultiplier as number;
       return [key, entry];
     }
   )

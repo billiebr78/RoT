@@ -232,4 +232,11 @@ export interface SpriteFrame {
   // sprite marked `flipped: true` skips that flip because it's already
   // in the correct orientation.
   flipped?: boolean;
+  // Optional: multiplies the renderer's computed scale. Default is 1.0.
+  // Use > 1.0 to make a sprite appear larger on screen (e.g. the rat
+  // sprite has a lot of transparent padding around a small body, so
+  // even though it renders at the standard 80px height, the visible
+  // rat looks small — scaleMultiplier: 1.3 makes the canvas render
+  // 30% bigger to compensate).
+  scaleMultiplier?: number;
 }

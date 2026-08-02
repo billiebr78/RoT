@@ -75,6 +75,18 @@ const MapView: React.FC<Props> = ({
     const [message, setMessage] = useState<string>('');
     const processedResult = useRef(false);
 
+    // Sync playerPos with character.mapRow/mapCol when the character
+    // changes externally (e.g. death → return to starting city). Without
+    // this, the player position would stay stale because useState only
+    // reads the initial value once on mount.
+    useEffect(() => {
+        const charRow = character.mapRow ?? PLAYER_START.row;
+        const charCol = character.mapCol ?? PLAYER_START.col;
+        if (charRow !== playerPos.row || charCol !== playerPos.col) {
+            setPlayerPos({ row: charRow, col: charCol });
+        }
+    }, [character.mapRow, character.mapCol]);
+
     // Save map state on change
     useEffect(() => {
         saveMapState(mapState, character.id);
@@ -138,7 +150,13 @@ const MapView: React.FC<Props> = ({
         // Save previous position (for flee handling)
         const prev = { row: playerPos.row, col: playerPos.col };
 
-        // Mark cell as visited and decrement all cooldowns
+        // Mark cell as visited and decrement all cooldowns.
+        // IMPORTANT: we decrement cooldowns of ALL cells EXCEPT the one
+        // the player is moving TO. The destination cell's cooldown (if
+        // any from a previous visit) is checked AFTER this loop to decide
+        // whether to spawn an enemy. If we decremented it here, a cell
+        // with cooldown=1 would drop to 0 and immediately allow a spawn
+        // — making the cooldown effectively 1 turn shorter than configured.
         const newMapState: MapState = {
             ...mapState,
             cells: mapState.cells.map(r => r.map(c => ({ ...c }))),
@@ -146,6 +164,8 @@ const MapView: React.FC<Props> = ({
         newMapState.cells[row][col].visited = true;
         for (let r = 0; r < MAP_SIZE; r++) {
             for (let c = 0; c < MAP_SIZE; c++) {
+                // Skip the destination cell — its cooldown is checked below.
+                if (r === row && c === col) continue;
                 if (newMapState.cells[r][c].clearedTurnsRemaining > 0) {
                     newMapState.cells[r][c].clearedTurnsRemaining--;
                     // Reset bossDefeated when cooldown expires

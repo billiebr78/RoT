@@ -213,12 +213,18 @@ const TARGET_PX_HEIGHT_BOSS = 112;
 
 /**
  * Compute the canvas scale to apply for a sprite of the given (grid) height
- * so that it renders at the standard on-screen pixel height.
+ * so that it renders at the standard on-screen pixel height. Multiplies
+ * by the sprite's optional scaleMultiplier if declared (e.g. 1.3 for the
+ * rat to make it 30% bigger than the default target).
  */
-const spriteScale = (spriteGridHeight: number | undefined, isBoss: boolean = false): number => {
+const spriteScale = (
+    spriteGridHeight: number | undefined,
+    isBoss: boolean = false,
+    scaleMultiplier: number | undefined = 1,
+): number => {
     const gridH = spriteGridHeight ?? 16;  // legacy default
     const targetPx = isBoss ? TARGET_PX_HEIGHT_BOSS : TARGET_PX_HEIGHT;
-    return targetPx / gridH;
+    return (targetPx / gridH) * (scaleMultiplier ?? 1);
 };
 
 export const drawSprite = (
@@ -559,8 +565,10 @@ export const draw = (
     let playerColorOverride: string | undefined;
     if (state.playerState === 'DEFENDING') playerColorOverride = '#3b82f6';
     if (state.castTimer > 0) playerColorOverride = '#eab308';
+    const playerSpriteDef = SPRITE_LIBRARY[playerSprite];
     drawSprite(ctx, playerSprite, state.playerX, GROUND_Y - 10,
-        spriteScale(SPRITE_LIBRARY[playerSprite]?.height), true,
+        spriteScale(playerSpriteDef?.height, false, playerSpriteDef?.scaleMultiplier),
+        true,
         state.animFrame, playerColorOverride, state, character.classType);
 
     // Player cast bar
@@ -597,9 +605,10 @@ export const draw = (
         let enemyColor: string | undefined;
         if (aiState === 'STUNNED') enemyColor = '#555';
         if (aiState === 'DEFENDING') enemyColor = '#b91c1c';
+        const enemySpriteDef = SPRITE_LIBRARY[state.enemy.sprite];
         drawSprite(
             ctx, state.enemy.sprite, state.enemyX, GROUND_Y - 10,
-            spriteScale(SPRITE_LIBRARY[state.enemy.sprite]?.height, state.enemy.isBoss),
+            spriteScale(enemySpriteDef?.height, state.enemy.isBoss, enemySpriteDef?.scaleMultiplier),
             false, state.animFrame, enemyColor,
             state, character.classType,
             { paletteOverride: state.enemyPaletteCache || undefined },
