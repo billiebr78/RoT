@@ -287,10 +287,18 @@ export const drawSprite = (
         //   0      1      2     3       4        5
         const aiState = state.enemyAI.state;
         if (aiState === 'ATTACK') {
-            // Rapidly alternate attack1/attack2 during the strike
-            frameOffset = 4 + (Math.floor(frame / 3) % 2);
-        } else if (aiState === 'PREPARE' || aiState === 'CASTING') {
-            // Windup frame shown while preparing
+            // Hold attack 2 (strike follow-through) for the duration of
+            // the ATTACK state (500ms — set in GameLoop when transitioning
+            // from PREPARE). The damage was already applied at the
+            // PREPARE→ATTACK transition.
+            frameOffset = 5;
+        } else if (aiState === 'PREPARE') {
+            // During windup (while "!" shows), display attack 1 — the
+            // visual "ready to strike" pose. This makes the windup feel
+            // connected to the strike that follows.
+            frameOffset = 4;
+        } else if (aiState === 'CASTING') {
+            // Casters use the windup frame too (spell prep)
             frameOffset = 3;
         } else if (aiState === 'ADVANCE' || aiState === 'RETREAT' || aiState === 'FLEEING') {
             // Walk alternates with windup (gives a 2-frame walk cycle
@@ -320,7 +328,14 @@ export const drawSprite = (
 
     ctx.save();
     ctx.translate(x, y);
-    if (!facingRight) ctx.scale(-1, 1);
+    // Enemies are normally drawn facing right (toward the player on the
+    // left), so the renderer flips them horizontally. Sprites marked
+    // `flipped: true` were authored facing left already, so we skip the
+    // flip for them. The `facingRight` parameter from the caller still
+    // applies on top of this (player sprites pass facingRight=true and
+    // never get flipped; enemies pass facingRight=false and normally do).
+    const shouldFlip = !facingRight && !sprite.flipped;
+    if (shouldFlip) ctx.scale(-1, 1);
     if (animRowIndex === 0) {
         const bob = Math.sin(frame * 0.2) * 2;
         ctx.translate(0, bob);

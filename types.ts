@@ -225,4 +225,11 @@ export interface SpriteFrame {
   // compute the on-screen scale so the final pixel size stays ~constant.
   width?: number;
   height?: number;
+  // Optional: if true, the sprite is drawn facing left by default (no
+  // horizontal flip applied for enemies). Useful for sprites that were
+  // drawn facing left in the source PNG — the renderer normally flips
+  // enemies horizontally (so they face the player on the left), but a
+  // sprite marked `flipped: true` skips that flip because it's already
+  // in the correct orientation.
+  flipped?: boolean;
 }

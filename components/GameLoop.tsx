@@ -657,7 +657,17 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
                 case 'PREPARE':
                     if (ai.timer <= 0) {
+                        // Transition to ATTACK: execute the damage roll now
+                        // (the strike visually connects as PREPARE ends),
+                        // then hold the ATTACK state for 500ms so the
+                        // attack-2 frame stays visible during follow-through.
+                        if (dist <= meleeRange + 10) {
+                            performEnemyAttack(totalStats);
+                        } else {
+                            addFloatingText(state.enemyX, GROUND_Y - 80, "Miss!", "gray");
+                        }
                         ai.state = 'ATTACK';
+                        ai.timer = 500;
                     }
                     break;
 
@@ -671,12 +681,11 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
                      break;
 
                 case 'ATTACK':
-                    if (state.impactTimer <= 0) {
-                        if (dist <= meleeRange + 10) {
-                            performEnemyAttack(totalStats);
-                        } else {
-                            addFloatingText(state.enemyX, GROUND_Y - 80, "Miss!", "gray");
-                        }
+                    // Hold the attack pose for 500ms (set when we transitioned
+                    // from PREPARE). The damage was already applied at the
+                    // PREPARE→ATTACK transition so the strike visually connects
+                    // exactly when the windup ends.
+                    if (ai.timer <= 0) {
                         ai.state = 'COOLDOWN';
                         const cooldownMod = state.enemy.isBoss ? 0.75 : 1.0;
                         ai.timer = (500 + Math.random() * 500) * cooldownMod;

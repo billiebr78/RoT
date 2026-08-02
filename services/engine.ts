@@ -394,7 +394,9 @@ export const generateEnemy = (quadrantLevel: number, playerLevel: number, luck: 
         // hue wheel (so ±90°). Gives each spawned enemy a unique color tint
         // without changing its sprite definition. Grey/black colors (s=0)
         // are left unchanged by shiftHue, so outlines and shadows stay neutral.
-        hueShift: (Math.random() * 2 - 1) * 90,
+        // Templates with `noHueShift: true` (e.g. the rat — low-saturation
+        // palette that washes out when shifted) skip the random rotation.
+        hueShift: template.noHueShift ? 0 : (Math.random() * 2 - 1) * 90,
         archetype,
         firstAidTriggered: {},
     };

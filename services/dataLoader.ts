@@ -94,19 +94,28 @@ export interface EnemyTemplate {
   abilities: EnemyAbility[];
   archetypes: EnemyArchetype[];
   isBoss?: boolean;
+  // When true, generateEnemy() will set hueShift=0 so the enemy always
+  // renders with its exact palette colors. Useful for enemies whose
+  // palette has low saturation (e.g. the rat's pale pinks/grays) where
+  // random hue shifts would wash them out against the dark background.
+  noHueShift?: boolean;
 }
 
-export const ENEMIES_DB: EnemyTemplate[] = (enemiesJson as any[]).map(e => ({
-  name: e.name,
-  sprite: e.sprite,
-  baseExp: e.baseExp,
-  weights: Object.fromEntries(
-    Object.entries(e.weights).map(([k, v]) => [ATTR_MAP[k], v])
-  ) as Record<Attribute, number>,
-  abilities: (e.abilities || []).map((abKey: string) => ENEMY_ABILITIES_DB[abKey]).filter((ab: EnemyAbility) => ab),
-  archetypes: (e.archetypes || []) as EnemyArchetype[],
-  isBoss: e.isBoss === true,
-}));
+export const ENEMIES_DB: EnemyTemplate[] = (enemiesJson as any[]).map(e => {
+  const tmpl: EnemyTemplate = {
+    name: e.name,
+    sprite: e.sprite,
+    baseExp: e.baseExp,
+    weights: Object.fromEntries(
+      Object.entries(e.weights).map(([k, v]) => [ATTR_MAP[k], v])
+    ) as Record<Attribute, number>,
+    abilities: (e.abilities || []).map((abKey: string) => ENEMY_ABILITIES_DB[abKey]).filter((ab: EnemyAbility) => ab),
+    archetypes: (e.archetypes || []) as EnemyArchetype[],
+    isBoss: e.isBoss === true,
+  };
+  if (e.noHueShift === true) tmpl.noHueShift = true;
+  return tmpl;
+});
 
 // Player abilities DB — convert string enums to real enums
 export const ABILITY_DB: Ability[] = (abilitiesJson as any[]).map(a => ({
@@ -214,17 +223,18 @@ export const PALETTE_VARIANTS: Record<string, Partial<Record<string, string>>> =
 export const SPRITE_LIBRARY: Record<string, SpriteFrame> = Object.fromEntries(
   Object.entries((spritesJson as any).sprites).map(
     ([key, def]: [string, any]) => {
-      // Build the sprite entry. We assign width/height directly instead
-      // of using conditional spread (...(x ? {y} : {})) because the Vite
-      // minifier was stripping the spread off, leaving sprites without
-      // their declared dimensions (and breaking the renderer's fallback
-      // to 12x16 for sprites that DO declare 32x32).
+      // Build the sprite entry. We assign width/height/flipped directly
+      // instead of using conditional spread (...(x ? {y} : {})) because
+      // the Vite minifier was stripping the spread off, leaving sprites
+      // without their declared dimensions (and breaking the renderer's
+      // fallback to 12x16 for sprites that DO declare 32x32).
       const entry: SpriteFrame = {
         rows: def.rows as string[],
         palette: PALETTES,
       };
       if (def.width !== undefined) entry.width = def.width as number;
       if (def.height !== undefined) entry.height = def.height as number;
+      if (def.flipped === true) entry.flipped = true;
       return [key, entry];
     }
   )
