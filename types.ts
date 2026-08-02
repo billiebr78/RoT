@@ -219,4 +219,10 @@ export type Palette = Record<string, string>;
 export interface SpriteFrame {
   rows: string[];
   palette: Palette;
+  // Optional dimensions. Default is 12 wide × 16 tall (legacy sprites).
+  // Newer sprites can declare larger grids (e.g. 32×32) for higher
+  // detail — the renderer reads these to slice rows correctly and to
+  // compute the on-screen scale so the final pixel size stays ~constant.
+  width?: number;
+  height?: number;
 }

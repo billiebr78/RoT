@@ -199,6 +199,28 @@ export const drawBackground = (ctx: CanvasRenderingContext2D, state: GameState) 
 // Hard cap on particles to prevent runaway counts during sustained combat.
 export const MAX_PARTICLES = 100;
 
+// Target on-screen height in pixels for sprites. The renderer picks the
+// scale per-sprite so that:
+//   scale = TARGET_PX_HEIGHT / sprite.height
+//
+// This keeps the on-screen size constant regardless of the sprite's grid
+// resolution. A legacy 12×16 sprite and a new 32×32 sprite both end up
+// the same pixel size on screen — the 32×32 just has more detail.
+//
+// Bosses use TARGET_PX_HEIGHT_BOSS (≈1.4× taller).
+const TARGET_PX_HEIGHT = 80;
+const TARGET_PX_HEIGHT_BOSS = 112;
+
+/**
+ * Compute the canvas scale to apply for a sprite of the given (grid) height
+ * so that it renders at the standard on-screen pixel height.
+ */
+const spriteScale = (spriteGridHeight: number | undefined, isBoss: boolean = false): number => {
+    const gridH = spriteGridHeight ?? 16;  // legacy default
+    const targetPx = isBoss ? TARGET_PX_HEIGHT_BOSS : TARGET_PX_HEIGHT;
+    return targetPx / gridH;
+};
+
 export const drawSprite = (
     ctx: CanvasRenderingContext2D,
     spriteKey: string,
@@ -218,6 +240,11 @@ export const drawSprite = (
     if (!sprite) return;
     const { rows, palette } = sprite;
 
+    // Sprite dimensions — defaults preserve legacy 12×16 behavior.
+    // Newer sprites declare width/height in their JSON entry (e.g. 32×32).
+    const spriteW = sprite.width ?? 12;
+    const spriteH = sprite.height ?? 16;
+
     const paletteOverride = options?.paletteOverride;
 
     let animRowIndex = 0;
@@ -228,20 +255,67 @@ export const drawSprite = (
         else animRowIndex = 0;
     }
 
+    // Determine how many animation frames are available in the row.
+    // Legacy sprites: 3 frames per row (spriteW × 3 chars per row string).
+    // New 32×32 enemy sprites: 6 frames in a single row.
+    // Single-frame sprites: just spriteW chars per row (frameCount=1).
+    const sampleRowLen = rows[0]?.length ?? spriteW;
+    const frameCount = Math.max(1, Math.floor(sampleRowLen / spriteW));
+
     let frameOffset = 0;
-    if (state.playerState === 'ATTACKING' && spriteKey === characterClassType) {
-        const duration = state.attackDuration || 300;
-        const progress = 1 - (state.attackTimer / duration);
-        if (progress < 0.3) frameOffset = 0;
-        else if (progress < 0.6) frameOffset = 1;
-        else frameOffset = 2;
-    } else if (state.playerState === 'MOVING' || state.enemyAI.state === 'ADVANCE') {
-        frameOffset = (frame % 3);
+    if (spriteKey === characterClassType) {
+        // Player sprite — 4 animation rows, each with frameCount frames.
+        if (state.playerState === 'ATTACKING') {
+            const duration = state.attackDuration || 300;
+            const progress = 1 - (state.attackTimer / duration);
+            if (frameCount >= 3) {
+                if (progress < 0.3) frameOffset = 0;
+                else if (progress < 0.6) frameOffset = 1;
+                else frameOffset = 2;
+            } else {
+                frameOffset = Math.min(frameCount - 1, Math.floor(progress * frameCount));
+            }
+        } else if (state.playerState === 'MOVING') {
+            frameOffset = (frame % frameCount);
+        } else {
+            // IDLE / DEFEND / CAST — slow cycle
+            frameOffset = (Math.floor(frame / 10) % frameCount);
+        }
+    } else if (frameCount === 6) {
+        // New 6-frame enemy layout:
+        // [Idle1][Idle2][Walk][Windup][Attack1][Attack2]
+        //   0      1      2     3       4        5
+        const aiState = state.enemyAI.state;
+        if (aiState === 'ATTACK') {
+            // Rapidly alternate attack1/attack2 during the strike
+            frameOffset = 4 + (Math.floor(frame / 3) % 2);
+        } else if (aiState === 'PREPARE' || aiState === 'CASTING') {
+            // Windup frame shown while preparing
+            frameOffset = 3;
+        } else if (aiState === 'ADVANCE' || aiState === 'RETREAT' || aiState === 'FLEEING') {
+            // Walk alternates with windup (gives a 2-frame walk cycle
+            // even though we only have 1 dedicated walk frame)
+            frameOffset = (Math.floor(frame / 5) % 2 === 0) ? 2 : 3;
+        } else if (aiState === 'HEALING') {
+            frameOffset = 1; // idle 2 (slight variation)
+        } else {
+            // IDLE / STUNNED / DEFENDING / COOLDOWN — slow breathing
+            // between idle1 and idle2
+            frameOffset = (Math.floor(frame / 15) % 2);
+        }
+    } else if (frameCount === 1) {
+        // Single-frame sprite (legacy enemy) — always frame 0
+        frameOffset = 0;
     } else {
-        frameOffset = (Math.floor(frame / 10) % 3);
+        // Legacy 3-frame sprite — keep old behavior for backwards compat
+        if (state.playerState === 'MOVING' || state.enemyAI.state === 'ADVANCE') {
+            frameOffset = (frame % frameCount);
+        } else {
+            frameOffset = (Math.floor(frame / 10) % frameCount);
+        }
     }
 
-    const frameHeight = 16;
+    const frameHeight = spriteH;
     const yOffset = animRowIndex * frameHeight;
 
     ctx.save();
@@ -255,14 +329,15 @@ export const drawSprite = (
     for (let r = 0; r < frameHeight; r++) {
         if (yOffset + r >= rows.length) break;
         const fullRowStr = rows[yOffset + r];
-        // Single-frame sprites have 12-char rows; multi-frame have 36.
-        // Clamp frameOffset so we never slice past the end of a single-
-        // frame row (which would return an empty string and make the
-        // sprite disappear — the flickering bug).
-        const maxFrameStart = Math.max(0, fullRowStr.length - 12);
-        const frameStart = Math.min(frameOffset * 12, maxFrameStart);
-        const rowStr = fullRowStr.slice(frameStart, frameStart + 12);
-        for (let c = 0; c < 12; c++) {
+        // Single-frame sprites have spriteW-char rows; multi-frame have
+        // spriteW * 3 (frames concatenated horizontally). Clamp frameOffset
+        // so we never slice past the end of a single-frame row (which would
+        // return an empty string and make the sprite disappear — the
+        // flickering bug).
+        const maxFrameStart = Math.max(0, fullRowStr.length - spriteW);
+        const frameStart = Math.min(frameOffset * spriteW, maxFrameStart);
+        const rowStr = fullRowStr.slice(frameStart, frameStart + spriteW);
+        for (let c = 0; c < spriteW; c++) {
             const char = rowStr[c];
             // overrideColor (status effect tint like stun/defend) takes
             // precedence over palette. Otherwise use paletteOverride if
@@ -272,8 +347,9 @@ export const drawSprite = (
                 : (paletteOverride && paletteOverride[char]) || palette[char];
             if (color && color !== 'transparent') {
                 ctx.fillStyle = color;
-                const dx = (c - 6) * scale;
-                const dy = (r - 16) * scale;
+                // Center horizontally on (x,y), place feet at y (rows go up).
+                const dx = (c - spriteW / 2) * scale;
+                const dy = (r - spriteH) * scale;
                 ctx.fillRect(dx, dy, scale, scale);
             }
         }
@@ -441,7 +517,9 @@ export const draw = (
     let playerColorOverride: string | undefined;
     if (state.playerState === 'DEFENDING') playerColorOverride = '#3b82f6';
     if (state.castTimer > 0) playerColorOverride = '#eab308';
-    drawSprite(ctx, playerSprite, state.playerX, GROUND_Y - 10, 5, true, state.animFrame, playerColorOverride, state, character.classType);
+    drawSprite(ctx, playerSprite, state.playerX, GROUND_Y - 10,
+        spriteScale(SPRITE_LIBRARY[playerSprite]?.height), true,
+        state.animFrame, playerColorOverride, state, character.classType);
 
     // Player cast bar
     if (state.castTimer > 0) {
@@ -479,7 +557,8 @@ export const draw = (
         if (aiState === 'DEFENDING') enemyColor = '#b91c1c';
         drawSprite(
             ctx, state.enemy.sprite, state.enemyX, GROUND_Y - 10,
-            state.enemy.isBoss ? 7 : 5, false, state.animFrame, enemyColor,
+            spriteScale(SPRITE_LIBRARY[state.enemy.sprite]?.height, state.enemy.isBoss),
+            false, state.animFrame, enemyColor,
             state, character.classType,
             { paletteOverride: state.enemyPaletteCache || undefined },
         );
