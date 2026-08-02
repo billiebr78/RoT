@@ -334,7 +334,33 @@ export const drawSprite = (
     // flip for them. The `facingRight` parameter from the caller still
     // applies on top of this (player sprites pass facingRight=true and
     // never get flipped; enemies pass facingRight=false and normally do).
-    const shouldFlip = !facingRight && !sprite.flipped;
+    //
+    // Exception: when an enemy is RETREATING (fear) or FLEEING, it's
+    // moving to the right — away from the player. In that case we want
+    // it to face the direction it's moving, so we flip the sprite to
+    // face right (which for `flipped` sprites means applying the flip
+    // we'd normally skip; for non-flipped sprites it means NOT applying
+    // the flip we'd normally apply).
+    let shouldFlip: boolean;
+    if (!facingRight) {
+        // Enemy sprite — check if it's moving right (fleeing/retreating)
+        const aiState = state.enemyAI?.state;
+        const isMovingRight = aiState === 'RETREAT' || aiState === 'FLEEING';
+        if (isMovingRight) {
+            // Enemy faces right (direction of movement).
+            // - Normal sprite (authored facing right): no flip
+            // - Flipped sprite (authored facing left): apply flip to make it face right
+            shouldFlip = !!sprite.flipped;
+        } else {
+            // Enemy faces left (toward the player).
+            // - Normal sprite (authored facing right): apply flip
+            // - Flipped sprite (authored facing left): no flip
+            shouldFlip = !sprite.flipped;
+        }
+    } else {
+        // Player sprite — never flip (player always faces right)
+        shouldFlip = false;
+    }
     if (shouldFlip) ctx.scale(-1, 1);
     if (animRowIndex === 0) {
         const bob = Math.sin(frame * 0.2) * 2;
