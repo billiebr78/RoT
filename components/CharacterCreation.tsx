@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Attribute, Character, ClassType, ItemSlot } from '../types';
 import { BASE_ATTRIBUTE_VALUE, BONUS_ATTRIBUTE_VALUE, CLASS_BONUS, STARTING_ITEMS } from '../constants';
-import { Dices, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ChevronRight, ArrowLeft } from 'lucide-react';
 import { GiBroadsword, GiFairyWand, GiCrosshair } from 'react-icons/gi';
 
 interface Props {
@@ -10,11 +10,16 @@ interface Props {
   onBack: () => void;
 }
 
+// Fixed number of points the player can distribute across attributes
+// at character creation. No more random roll — every character starts
+// with the same budget so there's no incentive to refresh for better
+// rolls.
+const CREATION_POINTS = 10;
+
 const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
   const [name, setName] = useState('');
   const [selectedClass, setSelectedClass] = useState<ClassType>(ClassType.WARRIOR);
-  const [rollResult, setRollResult] = useState<number | null>(null);
-  const [availablePoints, setAvailablePoints] = useState(0);
+  const [availablePoints, setAvailablePoints] = useState(CREATION_POINTS);
   const [attributes, setAttributes] = useState<Record<Attribute, number>>({
     [Attribute.ST]: BASE_ATTRIBUTE_VALUE,
     [Attribute.DX]: BASE_ATTRIBUTE_VALUE,
@@ -25,7 +30,7 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
 
   const handleClassSelect = (c: ClassType) => {
     setSelectedClass(c);
-    // Reset stats to base
+    // Reset stats to base + class bonus
     const newAttributes = {
       [Attribute.ST]: BASE_ATTRIBUTE_VALUE,
       [Attribute.DX]: BASE_ATTRIBUTE_VALUE,
@@ -33,18 +38,9 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
       [Attribute.HT]: BASE_ATTRIBUTE_VALUE,
       [Attribute.LUCK]: BASE_ATTRIBUTE_VALUE
     };
-    // Apply class bonus
     newAttributes[CLASS_BONUS[c]] += BONUS_ATTRIBUTE_VALUE;
     setAttributes(newAttributes);
-  };
-
-  const rollDice = () => {
-    if (rollResult !== null) return;
-    const d1 = Math.floor(Math.random() * 10) + 1;
-    const d2 = Math.floor(Math.random() * 10) + 1;
-    const total = d1 + d2;
-    setRollResult(total);
-    setAvailablePoints(total);
+    setAvailablePoints(CREATION_POINTS);
   };
 
   const adjustAttribute = (attr: Attribute, change: number) => {
@@ -77,9 +73,7 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
       attributes,
       attributePoints: 0,
       skillPoints: 1, 
-      potions: 3, // Start with 3 potions (converted to items in migration/hub logic usually, or we init properly here)
-      // To follow the new Usable item logic strictly, we should put potion items in stash or slots
-      // For now, keep legacy prop as fallback or add real items to stash
+      potions: 3,
       equipment: {
         [ItemSlot.MAIN_HAND]: STARTING_ITEMS[selectedClass].find(i => i.slot === ItemSlot.MAIN_HAND),
         [ItemSlot.CHEST]: STARTING_ITEMS[selectedClass].find(i => i.slot === ItemSlot.CHEST),
@@ -150,20 +144,11 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
 
             <div className="bg-medieval-900 p-3 sm:p-4 rounded border border-medieval-600">
               <div className="flex justify-between items-center mb-3 sm:mb-4">
-                <span className="font-bold text-base sm:text-lg">Fate Roll (2d10)</span>
-                {rollResult === null ? (
-                  <button 
-                    onClick={rollDice}
-                    className="flex items-center px-4 py-2 bg-amber-700 hover:bg-amber-600 rounded text-white font-bold"
-                  >
-                    <Dices className="mr-2" /> Roll
-                  </button>
-                ) : (
-                  <span className="text-2xl font-bold text-amber-400">{rollResult} Points</span>
-                )}
+                <span className="font-bold text-base sm:text-lg">Attribute Points</span>
+                <span className="text-2xl font-bold text-amber-400">{availablePoints} / {CREATION_POINTS}</span>
               </div>
               <div className="text-center text-sm text-medieval-400">
-                Points Remaining: <span className="text-white font-bold text-lg">{availablePoints}</span>
+                Distribute {CREATION_POINTS} points across your attributes.
               </div>
             </div>
           </div>
@@ -187,7 +172,7 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
                   <div className="flex items-center space-x-3">
                     <button 
                       onClick={() => adjustAttribute(attr, -1)}
-                      disabled={availablePoints === (rollResult || 0)} // Basic disable logic
+                      disabled={attributes[attr] <= (attr === CLASS_BONUS[selectedClass] ? BASE_ATTRIBUTE_VALUE + BONUS_ATTRIBUTE_VALUE : BASE_ATTRIBUTE_VALUE)}
                       className="w-8 h-8 rounded bg-medieval-800 hover:bg-red-900 disabled:opacity-50 text-xl font-bold flex items-center justify-center"
                     >
                       -
@@ -208,7 +193,7 @@ const CharacterCreation: React.FC<Props> = ({ onCharacterCreated, onBack }) => {
             <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-medieval-700">
                 <button
                     onClick={handleCreate}
-                    disabled={availablePoints > 0 || !name || !rollResult}
+                    disabled={availablePoints > 0 || !name}
                     className="w-full py-3 sm:py-4 bg-emerald-800 hover:bg-emerald-700 disabled:bg-gray-800 disabled:text-gray-500 text-white font-bold text-base sm:text-xl rounded flex justify-center items-center transition-all"
                 >
                     Begin Journey <ChevronRight className="ml-2" />

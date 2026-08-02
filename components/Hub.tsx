@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Character, ItemSlot, Item, AbilityTree, AbilityType, Attribute, ItemType } from '../types';
-import { ABILITY_DB, getExpForLevel, getHp } from '../constants';
+import { ABILITY_DB, getExpForLevel, getHp, CLASS_TREE } from '../constants';
 import { calculateTotalStats, generateLoot } from '../services/engine';
 import HubHeader from './hub/HubHeader';
 import TownSquare from './hub/TownSquare';
@@ -21,7 +21,7 @@ type TownLocation = 'SQUARE' | 'TAVERN' | 'BLACKSMITH' | 'APOTHECARY' | 'IVORY_T
 const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, onLogout }) => {
     const [location, setLocation] = useState<TownLocation>('SQUARE');
     const [activeTab, setActiveTab] = useState<'equipment' | 'abilities'>('equipment');
-    const [abilityTreeTab, setAbilityTreeTab] = useState<AbilityTree>(AbilityTree.MIGHT);
+    const [abilityTreeTab, setAbilityTreeTab] = useState<AbilityTree>(CLASS_TREE[character.classType] ?? AbilityTree.MIGHT);
 
     const [blacksmithItems, setBlacksmithItems] = useState<Item[]>([]);
     const [magicItems, setMagicItems] = useState<Item[]>([]);
@@ -228,23 +228,33 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
     const unlockAbility = (id: string) => {
         if ((character.skillPoints || 0) <= 0) return;
 
+        // Class restriction: players can only unlock abilities from their
+        // own class's tree (Warrior=MIGHT, Mage=MYSTICS, Rogue=TACTICS).
+        const ability = ABILITY_DB.find(a => a.id === id);
+        if (!ability) return;
+        const classTree = CLASS_TREE[character.classType];
+        if (ability.tree !== classTree) return;
+
         const newChar = { ...character, currentHp: localHp };
         newChar.skillPoints = (newChar.skillPoints || 0) - 1;
 
+        // CRITICAL: create a new abilityLevels object so React's useMemo
+        // detects the change. The old code did `if (!newChar.abilityLevels)
+        // newChar.abilityLevels = {}` which kept the same reference when
+        // abilityLevels already existed, so mutating it in-place didn't
+        // trigger a re-calculation of totalStats in the useMemo.
+        newChar.abilityLevels = { ...(newChar.abilityLevels || {}) };
+
         if (newChar.unlockedAbilities.includes(id)) {
-            if (!newChar.abilityLevels) newChar.abilityLevels = {};
             const currentLvl = newChar.abilityLevels[id] || 1;
-            const ability = ABILITY_DB.find(a => a.id === id);
-            if (ability && ability.maxLevel && currentLvl < ability.maxLevel) {
+            if (ability.maxLevel && currentLvl < ability.maxLevel) {
                 newChar.abilityLevels[id] = currentLvl + 1;
             }
         } else {
             newChar.unlockedAbilities = [...newChar.unlockedAbilities, id];
-            if (!newChar.abilityLevels) newChar.abilityLevels = {};
             newChar.abilityLevels[id] = 1;
 
-            const ability = ABILITY_DB.find(a => a.id === id);
-            if (ability && ability.type === AbilityType.ACTIVE) {
+            if (ability.type === AbilityType.ACTIVE) {
                  const active = newChar.equippedAbilities.filter(aid => ABILITY_DB.find(a => a.id === aid)?.type === AbilityType.ACTIVE).length;
                  if (active < 3) {
                     newChar.equippedAbilities = [...newChar.equippedAbilities, id];
