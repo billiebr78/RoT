@@ -320,8 +320,13 @@ const MapView: React.FC<Props> = ({
 
                             let bgColor = '#000';
                             if (cellState.visited) {
-                                bgColor = isCleared && !isCity ? '#1a1008' : TERRAIN_COLORS[terrain];
-                                if (!isAccessible) bgColor = TERRAIN_COLORS[terrain];
+                                // Cleared cells keep their terrain color but will be
+                                // rendered with reduced opacity (see `opacity` below)
+                                // to indicate "already explored, on cooldown".
+                                // Previously cleared cells used '#1a1008' which is the
+                                // same as the map background (medieval-900), making
+                                // them invisible.
+                                bgColor = TERRAIN_COLORS[terrain];
                             }
 
                             let content = '';
@@ -329,6 +334,16 @@ const MapView: React.FC<Props> = ({
                             else if (cellState.visited && isCity) content = '🏰';
                             else if (cellState.visited && spawn.type === 'boss' && !cellState.bossDefeated) content = '💀';
                             else if (cellState.visited && spawn.type === 'miniboss' && !cellState.bossDefeated) content = '⚠';
+
+                            // Cleared cells (on cooldown) appear dimmed to show
+                            // they've been explored but aren't ready to spawn yet.
+                            // Active (non-cleared) visited cells appear at full
+                            // opacity. Unvisited cells are very dim.
+                            const cellOpacity = isAdjacent
+                                ? 1
+                                : cellState.visited
+                                    ? (isCleared && !isCity ? 0.35 : 0.9)
+                                    : 0.5;
 
                             return (
                                 <div
@@ -348,7 +363,7 @@ const MapView: React.FC<Props> = ({
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         fontSize: 'clamp(8px, 1.8vmin, 12px)',
-                                        opacity: isAdjacent ? 1 : (cellState.visited ? 0.9 : 0.5),
+                                        opacity: cellOpacity,
                                         transition: 'border-color 0.15s',
                                     }}
                                     title={cellState.visited ? TERRAIN_LABELS[terrain] : 'Unknown'}
