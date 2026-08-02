@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Character, Item, ItemSlot, Attribute, AbilityTree, AbilityType, AbilityStyle } from '../../types';
-import { ABILITY_DB, CLASS_TREE } from '../../constants';
+import { ABILITY_DB } from '../../constants';
 import {
     Backpack, Activity, PlusCircle, Lock, Check, Plus, Map,
 } from 'lucide-react';
@@ -182,22 +182,24 @@ const Tavern: React.FC<Props> = ({
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6">
-                    {/* Show only the character's class tree. Players can no
-                        longer view or unlock abilities from other trees. */}
-                    {[CLASS_TREE[character.classType] ?? AbilityTree.MIGHT].map(tree => (
+                    {[AbilityTree.MIGHT, AbilityTree.TACTICS, AbilityTree.MYSTICS].map(tree => (
                         <button
                             key={tree}
-                            className="flex-1 py-2 px-2 sm:px-4 rounded border-2 font-serif uppercase tracking-widest bg-medieval-700 border-medieval-300 text-white shadow-lg text-xs sm:text-base cursor-default"
+                            onClick={() => onSetAbilityTreeTab(tree)}
+                            className={`flex-1 py-2 px-2 sm:px-4 rounded border-2 font-serif uppercase tracking-widest transition-all text-xs sm:text-base ${
+                                abilityTreeTab === tree
+                                ? 'bg-medieval-700 border-medieval-300 text-white shadow-lg'
+                                : 'bg-medieval-900 border-medieval-700 text-medieval-500 hover:bg-medieval-800'
+                            }`}
                         >
-                            {tree} ({character.classType})
+                            {tree}
                         </button>
                     ))}
                 </div>
 
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 overflow-y-auto">
                     {[AbilityStyle.OFFENSIVE, AbilityStyle.DEFENSIVE, AbilityStyle.PASSIVE].map(style => {
-                        const classTree = CLASS_TREE[character.classType] ?? AbilityTree.MIGHT;
-                        const styleAbilities = ABILITY_DB.filter(a => a.tree === classTree && a.style === style);
+                        const styleAbilities = ABILITY_DB.filter(a => a.tree === abilityTreeTab && a.style === style);
                         return (
                             <div key={style} className="bg-medieval-900/50 rounded border border-medieval-700 p-4">
                                 <h4 className={`text-center font-bold mb-4 uppercase text-sm border-b pb-2 ${

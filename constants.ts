@@ -1,6 +1,5 @@
 
 import { Attribute, ClassType } from './types';
-import { AbilityTree } from './types';
 
 // === DATA-DRIVEN IMPORTS ===
 // All game data (enemies, abilities, items, archetypes, sprites, palettes,
@@ -22,16 +21,6 @@ export const CLASS_BONUS: Record<ClassType, Attribute> = {
   [ClassType.WARRIOR]: Attribute.ST,
   [ClassType.MAGE]: Attribute.INT,
   [ClassType.ROGUE]: Attribute.DX,
-};
-
-// Maps each class to its ability tree. Players can only unlock abilities
-// from their own class's tree — Warrior=MIGHT, Mage=MYSTICS, Rogue=TACTICS.
-// This prevents cross-class dipping (e.g. a Mage buying Warrior passives
-// for HP, or a Warrior buying Rogue crit passives).
-export const CLASS_TREE: Record<ClassType, AbilityTree> = {
-  [ClassType.WARRIOR]: AbilityTree.MIGHT,
-  [ClassType.MAGE]: AbilityTree.MYSTICS,
-  [ClassType.ROGUE]: AbilityTree.TACTICS,
 };
 
 // Calculate derived stats
