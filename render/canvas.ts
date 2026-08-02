@@ -245,6 +245,21 @@ export const drawSprite = (
     const spriteW = sprite.width ?? 12;
     const spriteH = sprite.height ?? 16;
 
+    // DEBUG: log rat sprite rendering info (temporary)
+    if (spriteKey === 'rat') {
+        // eslint-disable-next-line no-console
+        console.log('[RAT DEBUG]', {
+            spriteKey,
+            hasPalette: !!palette,
+            paletteKeys: palette ? Object.keys(palette).slice(0, 20) : [],
+            rowsCount: rows.length,
+            row0Len: rows[0]?.length,
+            spriteW, spriteH,
+            scale,
+            x, y,
+        });
+    }
+
     const paletteOverride = options?.paletteOverride;
 
     let animRowIndex = 0;
@@ -326,6 +341,16 @@ export const drawSprite = (
         ctx.translate(0, bob);
     }
 
+    // DEBUG: count drawn pixels for rat (temporary)
+    let __ratPixelsDrawn = 0;
+    if (spriteKey === 'rat') {
+        // eslint-disable-next-line no-console
+        console.log('[RAT DEBUG] entering draw loop', {
+            frameOffset, frameHeight, yOffset, rowsLength: rows.length,
+            sampleRow: rows[0]?.slice(0, 50),
+        });
+    }
+
     for (let r = 0; r < frameHeight; r++) {
         if (yOffset + r >= rows.length) break;
         const fullRowStr = rows[yOffset + r];
@@ -351,9 +376,17 @@ export const drawSprite = (
                 const dx = (c - spriteW / 2) * scale;
                 const dy = (r - spriteH) * scale;
                 ctx.fillRect(dx, dy, scale, scale);
+                if (spriteKey === 'rat') __ratPixelsDrawn++;
             }
         }
     }
+
+    // DEBUG: report pixel count for rat
+    if (spriteKey === 'rat') {
+        // eslint-disable-next-line no-console
+        console.log('[RAT DEBUG] drew', __ratPixelsDrawn, 'pixels at frameOffset', frameOffset);
+    }
+
     ctx.restore();
 };
 
