@@ -213,9 +213,19 @@ export const PALETTE_VARIANTS: Record<string, Partial<Record<string, string>>> =
 
 export const SPRITE_LIBRARY: Record<string, SpriteFrame> = Object.fromEntries(
   Object.entries((spritesJson as any).sprites).map(
-    ([key, def]: [string, any]) => [key, {
-      rows: def.rows as string[],
-      palette: PALETTES,
-    } as SpriteFrame]
+    ([key, def]: [string, any]) => {
+      // Build the sprite entry. We assign width/height directly instead
+      // of using conditional spread (...(x ? {y} : {})) because the Vite
+      // minifier was stripping the spread off, leaving sprites without
+      // their declared dimensions (and breaking the renderer's fallback
+      // to 12x16 for sprites that DO declare 32x32).
+      const entry: SpriteFrame = {
+        rows: def.rows as string[],
+        palette: PALETTES,
+      };
+      if (def.width !== undefined) entry.width = def.width as number;
+      if (def.height !== undefined) entry.height = def.height as number;
+      return [key, entry];
+    }
   )
 );
