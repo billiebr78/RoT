@@ -22,10 +22,26 @@ import {
   GiTornado,
   GiTiedScroll,
   GiBubblingFlask,
+  // Weapons / offhand
+  GiPlainDagger,
+  GiSpikedMace,
+  GiWarhammer,
+  GiWizardStaff,
+  GiAnvil,
+  // Potions (variations)
+  GiMagicPotion,
+  GiStandingPotion,
+  // Scroll buffs
+  GiStoneBlock,
+  GiWolfHead,
+  GiBearHead,
+  GiCloak,
+  GiBrain,
 } from 'react-icons/gi';
 import type { IconType } from 'react-icons';
 
 const ICONS: Record<string, IconType> = {
+  // Combat / abilities
   Sword: GiBroadsword,
   Shield: GiShield,
   Zap: GiHeavyLightning,
@@ -44,6 +60,24 @@ const ICONS: Record<string, IconType> = {
   Wand: GiFairyWand,
   Scroll: GiTiedScroll,
   FlaskConical: GiBubblingFlask,
+  // Weapons
+  PlainDagger: GiPlainDagger,
+  SpikedMace: GiSpikedMace,
+  Warhammer: GiWarhammer,
+  WizardStaff: GiWizardStaff,
+  BroadDagger: GiPlainDagger,
+  // Offhand
+  Talisman: GiAnvil,
+  // Potions
+  HealthPotion: GiHealthPotion,
+  MagicPotion: GiMagicPotion,
+  StandingPotion: GiStandingPotion,
+  // Scroll buffs
+  StoneBlock: GiStoneBlock,
+  WolfHead: GiWolfHead,
+  BearHead: GiBearHead,
+  Cloak: GiCloak,
+  Brain: GiBrain,
 };
 
 export const renderIcon = (iconName: string, size: number = 24, className: string = '') => {
