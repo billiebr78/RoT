@@ -872,8 +872,13 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
       // Apply enemy defensive buffs (Stone Skin, Shield)
       finalDmg = applyEnemyDefense(finalDmg);
 
+      // Enemy can only block when in a defensive-ready state (IDLE, ADVANCE,
+      // PREPARE, COOLDOWN, DEFENDING, HEALING). They cannot block while:
+      //   - ATTACK / CASTING: committed to an attack, no guard
+      //   - STUNNED / RETREAT: incapacitated or fleeing
+      //   - FLEEING: running away, exposed
       const isEnemyAttacking = state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'CASTING';
-      const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT';
+      const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT' || state.enemyAI.state === 'FLEEING';
       let isBlocked = false;
       if (!isEnemyAttacking && !isControl) {
            const baseBlock = 0.20 + (state.enemy.archetype === 'Defender' ? 0.10 : 0);
@@ -1308,7 +1313,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
                else addVFX('THRUST', state.playerX + 40, GROUND_Y - 40, 'white', 60);
 
                const isEnemyAttacking = state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'CASTING';
-               const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT';
+               const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT' || state.enemyAI.state === 'FLEEING';
                let isBlocked = false;
                if (!isEnemyAttacking && !isControl) {
                    const baseBlock = 0.20 + (state.enemy.archetype === 'Defender' ? 0.10 : 0);
@@ -1463,8 +1468,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
                  else if (ability.name === 'Cheap Shot') addVFX('THRUST', state.enemyX, GROUND_Y - 40, 'white'); 
                  else addVFX('SLASH', state.enemyX, GROUND_Y - 40, 'white');
 
-                 const isEnemyAttacking = state.enemyAI.state === 'ATTACK';
-                 const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT';
+                 const isEnemyAttacking = state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'CASTING';
+                 const isControl = state.enemyAI.state === 'STUNNED' || state.enemyAI.state === 'RETREAT' || state.enemyAI.state === 'FLEEING';
                  let isBlocked = false;
                  if (!isEnemyAttacking && !isControl) {
                      const baseBlock = 0.20 + (state.enemy.archetype === 'Defender' ? 0.10 : 0);
@@ -1762,6 +1767,14 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
       const healAmount = Math.floor(stats[Attribute.HT] * 1.2);
       const maxHp = getHp(stats[Attribute.HT]);
       const updatedChar = { ...characterRef.current };
+      // Apply accumulated exp (same logic as calculateExitState — if a
+      // level-up happened during this fight, characterRef.current.exp
+      // already reflects the rolled-over remaining; otherwise add the
+      // accumulated exp from this session).
+      const leveledUp = characterRef.current.level !== character.level;
+      if (!leveledUp) {
+          updatedChar.exp = (updatedChar.exp || 0) + gameState.current.expGained;
+      }
       updatedChar.gold += gameState.current.goldGained;
       updatedChar.stash = [...updatedChar.stash, ...gameState.current.lootFound];
       updatedChar.currentHp = Math.min(maxHp, (gameState.current.playerHp || 0) + healAmount);
@@ -1773,12 +1786,19 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
   };
 
   const calculateExitState = () => {
-      // Level up (if any) was already applied in handleEnemyDeath, which
-      // updated characterRef.current with the new level/exp/HP. Here we
-      // just merge in the accumulated rewards (exp/gold/loot from fights
-      // that didn't trigger a level up, plus the stage number) and sync
-      // currentHp from the gameState.
+      // handleEnemyDeath may have triggered a level-up, in which case
+      // characterRef.current was already updated with the new level and
+      // the rolled-over remaining exp. If no level-up happened, the exp
+      // accumulated in state.expGained still needs to be applied.
       const updatedChar = { ...characterRef.current };
+      const leveledUp = characterRef.current.level !== character.level;
+      if (!leveledUp) {
+          // No level-up happened — characterRef.current.exp is still the
+          // original value. Add the accumulated exp from this session.
+          updatedChar.exp = (updatedChar.exp || 0) + gameState.current.expGained;
+      }
+      // If leveledUp is true, characterRef.current.exp already reflects
+      // the remaining exp after the level-up, so we don't touch it.
       updatedChar.gold += gameState.current.goldGained;
       updatedChar.stash = [...updatedChar.stash, ...gameState.current.lootFound];
       updatedChar.maxStage = gameState.current.stage;

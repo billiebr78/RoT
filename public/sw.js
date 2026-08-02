@@ -9,7 +9,7 @@
 // The cache name includes a version number. Bump it to force a cache
 // refresh on the next visit after a deploy.
 
-const CACHE_NAME = 'rot-v20';
+const CACHE_NAME = 'rot-v21';
 const PRECACHE_URLS = [
   '/',
   '/index.html',
