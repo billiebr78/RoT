@@ -16,7 +16,7 @@ interface Props {
   onRest?: (updatedChar: Character, healAmount: number) => void;
 }
 
-const PLAYER_SPEED = 3.0; // Was 2.5, bumped 20% for snappier combat feel
+const PLAYER_SPEED = 3.25; // Was 2.5, then 3.0 (+20%). Now 3.25 = +30% total movement speed.
 // Character width on canvas: sprite is 12 cols × scale (now 10 with the
 // 50% size bump: 120px target / 12 cols = 10px per col). Used as a
 // reference unit for ability ranges (Dash distance, Aura Shield push).
@@ -168,9 +168,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     gameState.current.playerMaxHp = maxHp;
     gameState.current.playerHp = character.currentHp !== undefined ? character.currentHp : maxHp;
     gameState.current.stage = character.maxStage || 1; 
-    // Attack speed cooldown (ms). Was 1500 base, bumped to 20% faster = 1250 base.
-    // Min cap stays 500ms.
-    gameState.current.currentAttackSpeed = Math.max(500, 1250 - (stats[Attribute.DX] * 34));
+    // Attack speed cooldown (ms) — UNCHANGED (movement was bumped, not attack speed).
+    gameState.current.currentAttackSpeed = Math.max(500, 1500 - (stats[Attribute.DX] * 34));
 
     setHudStatic(prev => ({ 
         ...prev, 
@@ -470,7 +469,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
     const totalStats = calculateTotalStats(character, state.activeBuffs);
     state.cachedTotalStats = totalStats; 
-    state.currentAttackSpeed = Math.max(500, 1250 - (totalStats[Attribute.DX] * 34));
+    state.currentAttackSpeed = Math.max(500, 1500 - (totalStats[Attribute.DX] * 34));
 
     state.animFrame++;
     updateEnemyBuffs(dt);

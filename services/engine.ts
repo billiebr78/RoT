@@ -361,9 +361,9 @@ export const generateEnemy = (quadrantLevel: number, playerLevel: number, luck: 
     // Bear boss: 1.5x movement speed
     let speedMult = isBoss ? 1.5 : 1.0;
     if (template.name === 'Bear') speedMult *= 1.5;
-    // Normal (non-boss) enemies move 20% faster for snappier combat.
+    // Normal (non-boss) enemies move 30% faster for snappier combat.
     // Bosses keep their original speed (already 1.5x via speedMult).
-    if (!isBoss) speedMult *= 1.2;
+    if (!isBoss) speedMult *= 1.3;
 
     // Roll archetype: 50/50 between the enemy's two possible archetypes.
     // Bosses use the same archetype but with reduced flee threshold (5%).
