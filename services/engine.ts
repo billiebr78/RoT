@@ -361,6 +361,9 @@ export const generateEnemy = (quadrantLevel: number, playerLevel: number, luck: 
     // Bear boss: 1.5x movement speed
     let speedMult = isBoss ? 1.5 : 1.0;
     if (template.name === 'Bear') speedMult *= 1.5;
+    // Normal (non-boss) enemies move 20% faster for snappier combat.
+    // Bosses keep their original speed (already 1.5x via speedMult).
+    if (!isBoss) speedMult *= 1.2;
 
     // Roll archetype: 50/50 between the enemy's two possible archetypes.
     // Bosses use the same archetype but with reduced flee threshold (5%).
@@ -370,6 +373,7 @@ export const generateEnemy = (quadrantLevel: number, playerLevel: number, luck: 
     return {
         id: `enemy_${Date.now()}`,
         name: isBoss ? `BOSS: ${archetype} ${template.name}` : `${archetype} ${template.name}`,
+        level: N,
         sprite: template.sprite,
         attributes: {
             [Attribute.ST]: st,
@@ -382,7 +386,7 @@ export const generateEnemy = (quadrantLevel: number, playerLevel: number, luck: 
         hp: hp,
         damage: damage,
         speed: (0.6 + (Math.random() * 0.4) + (N * 0.02)) * speedMult * 1.25,
-        range: 100, // Matched enemy reach
+        range: 150, // Matched enemy reach (was 100, bumped 50% with sprite size increase)
         expReward,
         goldReward,
         dropChance,

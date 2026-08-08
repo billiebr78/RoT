@@ -189,6 +189,10 @@ export type EnemyArchetype = 'Berzerker' | 'Aggressor' | 'Skirmisher' | 'Defende
 export interface Enemy {
   id: string;
   name: string;
+  // Quadrant level the enemy was spawned at (used for display in the HUD
+  // and for scaling stats). Set by generateEnemy() from the quadrantLevel
+  // parameter passed by MapView when spawning.
+  level: number;
   attributes: Record<Attribute, number>;
   hp: number;
   maxHp: number;

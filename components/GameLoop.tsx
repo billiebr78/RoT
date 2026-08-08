@@ -16,10 +16,13 @@ interface Props {
   onRest?: (updatedChar: Character, healAmount: number) => void;
 }
 
-const PLAYER_SPEED = 2.5;
-// Character width on canvas: sprite is 12 cols × scale 5 = 60px.
-// Used as a reference unit for ability ranges (Dash distance, Aura Shield push).
-const CHARACTER_WIDTH = 60;
+const PLAYER_SPEED = 3.0; // Was 2.5, bumped 20% for snappier combat feel
+// Character width on canvas: sprite is 12 cols × scale (now 10 with the
+// 50% size bump: 120px target / 12 cols = 10px per col). Used as a
+// reference unit for ability ranges (Dash distance, Aura Shield push).
+// Was 60 when sprites were 80px tall; bumped to 90 to match the 50%
+// size increase so ability ranges feel proportional.
+const CHARACTER_WIDTH = 90;
 
 type AIState = 'IDLE' | 'ADVANCE' | 'PREPARE' | 'ATTACK' | 'RETREAT' | 'COOLDOWN' | 'STUNNED' | 'DEFENDING' | 'CASTING' | 'HEALING' | 'FLEEING';
 type PlayerState = 'IDLE' | 'MOVING' | 'ATTACKING' | 'DEFENDING' | 'CASTING';
@@ -117,6 +120,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     stage: 1,
     enemyName: '',
     enemyMaxHp: 100,
+    enemyLevel: 1,
     equippedUsable1: character.equipment[ItemSlot.USABLE1],
     equippedUsable2: character.equipment[ItemSlot.USABLE2],
     buffs: [] as Buff[] 
@@ -164,7 +168,9 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     gameState.current.playerMaxHp = maxHp;
     gameState.current.playerHp = character.currentHp !== undefined ? character.currentHp : maxHp;
     gameState.current.stage = character.maxStage || 1; 
-    gameState.current.currentAttackSpeed = Math.max(500, 1500 - (stats[Attribute.DX] * 34));
+    // Attack speed cooldown (ms). Was 1500 base, bumped to 20% faster = 1250 base.
+    // Min cap stays 500ms.
+    gameState.current.currentAttackSpeed = Math.max(500, 1250 - (stats[Attribute.DX] * 34));
 
     setHudStatic(prev => ({ 
         ...prev, 
@@ -275,7 +281,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     setHudStatic(prev => ({
         ...prev,
         enemyName: enemy.name,
-        enemyMaxHp: enemy.maxHp
+        enemyMaxHp: enemy.maxHp,
+        enemyLevel: enemy.level,
     }));
 
     if (enemy.isBoss) {
@@ -388,7 +395,18 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
                   state.enemyAI.state = 'IDLE';
                   state.enemyAI.timer = 500;
               }
-          } else if (state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'PREPARE' || state.enemyAI.state === 'CASTING') {
+          } else if (state.enemyAI.state === 'CASTING') {
+              // Spell casts have a 70% chance to be interrupted by knockback.
+              // 30% of the time the enemy "tanks through" the cast — useful
+              // for tougher caster enemies that shouldn't be trivially shut
+              // down by every hit.
+              if (Math.random() < 0.7) {
+                  addFloatingText(state.enemyX, GROUND_Y - 100, "Interrupted!", "yellow");
+                  state.enemyAI.state = 'IDLE';
+                  state.enemyAI.timer = 500;
+              }
+          } else if (state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'PREPARE') {
+              // Melee attacks and windups are always interrupted by knockback.
               state.enemyAI.state = 'IDLE';
               state.enemyAI.timer = 500;
           }
@@ -452,7 +470,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
     const totalStats = calculateTotalStats(character, state.activeBuffs);
     state.cachedTotalStats = totalStats; 
-    state.currentAttackSpeed = Math.max(500, 1500 - (totalStats[Attribute.DX] * 34));
+    state.currentAttackSpeed = Math.max(500, 1250 - (totalStats[Attribute.DX] * 34));
 
     state.animFrame++;
     updateEnemyBuffs(dt);
@@ -538,7 +556,10 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
     if (state.enemy) {
         const ai = state.enemyAI;
         const dist = state.enemyX - state.playerX;
-        const meleeRange = 110;
+        // Melee range scaled with the 50% sprite size bump — was 110 when
+        // sprites were 60px wide, now 165 to match the new 90px width so
+        // combatants can hit each other at the same visual distance.
+        const meleeRange = 165;
         const retreatDistance = 250;
 
         // Resolve archetype behavior (defaults to Aggressor if missing)
@@ -1319,7 +1340,8 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
       const dist = state.enemyX - state.playerX;
       const isMelee = character.classType === 'Warrior' || character.classType === 'Rogue';
-      const weaponRange = isMelee ? 110 : 400;
+      // Weapon range bumped 50% with sprite size increase (was 110/400).
+      const weaponRange = isMelee ? 165 : 600;
 
       if (dist <= weaponRange && dist > 0) {
            // The `isMagic` hint is now secondary — calculatePlayerDamage
@@ -1626,9 +1648,10 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
              // RETREAT state. triggerEnemyRetreat handles the duration and
              // the "Fear!" floating text. Bosses resist via fearResist but
              // Battle Roar bypasses that check — it's a roar, not a crit.
+             // Range bumped from 110 to 165 to match the 50% sprite size increase.
              if (state.enemy) {
                  const dist = state.enemyX - state.playerX;
-                 if (dist > 0 && dist <= 110) {
+                 if (dist > 0 && dist <= 165) {
                      triggerEnemyRetreat();
                  }
              }
@@ -1989,6 +2012,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
         character={character}
         enemyName={hudStatic.enemyName}
         enemyMaxHp={hudStatic.enemyMaxHp}
+        enemyLevel={hudStatic.enemyLevel}
         buffs={hudStatic.buffs}
         equippedUsable1={hudStatic.equippedUsable1}
         equippedUsable2={hudStatic.equippedUsable2}

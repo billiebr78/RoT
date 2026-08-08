@@ -208,8 +208,11 @@ export const MAX_PARTICLES = 100;
 // the same pixel size on screen — the 32×32 just has more detail.
 //
 // Bosses use TARGET_PX_HEIGHT_BOSS (≈1.4× taller).
-const TARGET_PX_HEIGHT = 80;
-const TARGET_PX_HEIGHT_BOSS = 112;
+//
+// Bumped from 80→120 (and 112→168 for bosses) for a 50% size increase
+// across the board — sprites were feeling too small on larger screens.
+const TARGET_PX_HEIGHT = 120;
+const TARGET_PX_HEIGHT_BOSS = 168;
 
 /**
  * Compute the canvas scale to apply for a sprite of the given (grid) height

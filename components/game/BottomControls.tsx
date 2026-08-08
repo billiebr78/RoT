@@ -9,6 +9,7 @@ interface Props {
     character: Character;
     enemyName: string;
     enemyMaxHp: number;
+    enemyLevel: number;
     buffs: Buff[];
     equippedUsable1?: Item;
     equippedUsable2?: Item;
@@ -26,7 +27,7 @@ interface Props {
 }
 
 const BottomControls: React.FC<Props> = ({
-    character, enemyName, enemyMaxHp, buffs,
+    character, enemyName, enemyMaxHp, enemyLevel, buffs,
     equippedUsable1, equippedUsable2, activeAbilities,
     cooldownRefs,
     playerHpBarRef, playerHpTextRef,
@@ -91,6 +92,9 @@ const BottomControls: React.FC<Props> = ({
                 <div ref={enemyContainerRef} className="flex-1 bg-medieval-900/90 border border-medieval-500 rounded p-0.5 shadow-lg transition-opacity duration-300 min-w-0">
                     <div className="flex justify-between items-baseline px-0.5">
                         <span className="font-bold truncate text-red-300" style={{ fontSize: 'clamp(8px, 2vmin, 11px)' }}>{enemyName}</span>
+                        <span className="text-red-400/80 shrink-0" style={{ fontSize: 'clamp(7px, 1.6vmin, 10px)' }}>
+                            L{enemyLevel}
+                        </span>
                     </div>
                     <div className="bg-black rounded border border-medieval-600 relative overflow-hidden" style={{ height: 'clamp(5px, 1.5vmin, 8px)' }}>
                         <div ref={enemyHpBarRef} className="h-full bg-gradient-to-r from-purple-700 to-purple-500 transition-all duration-75" style={{width: '100%'}}></div>
