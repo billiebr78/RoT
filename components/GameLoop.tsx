@@ -1,11 +1,12 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Character, Enemy, Ability, AbilityType, Attribute, ItemSlot, Item, EnemyAbility, SpriteFrame, Buff, BuffType, OffHandType, ItemType } from '../types';
 import { calculatePlayerDamage, generateEnemy, generateLoot, calculateTotalStats } from '../services/engine';
 import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getExpForLevel, getHp, getCooldownReduction, SPRITE_LIBRARY, ARCHETYPE_BEHAVIORS, BOSS_FLEE_THRESHOLD } from '../constants';
 import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES, ARENA_WIDTH, FLEE_ZONE_WIDTH, PLAYER_SPAWN_X, ENEMY_SPAWN_X } from '../render/canvas';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
+import { Pause, Play, LogOut } from 'lucide-react';
 
 interface Props {
   character: Character;
@@ -134,6 +135,22 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
   const battleSummaryRef = useRef(battleSummary);
   useEffect(() => { battleSummaryRef.current = battleSummary; }, [battleSummary]);
 
+  // Pause state — mirrors gameState.current.isPaused so React re-renders
+  // the overlay. The game loop already checks isPaused to skip updates,
+  // so toggling this freezes combat, projectiles, AI, everything.
+  const [isPaused, setIsPaused] = useState(false);
+
+  const togglePause = () => {
+    // Don't allow pause if a battle summary (victory/flee) is showing —
+    // the player can't unpause from a finished fight.
+    if (battleSummaryRef.current?.show) return;
+    setIsPaused(prev => {
+        const next = !prev;
+        gameState.current.isPaused = next;
+        return next;
+    });
+  };
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
   
@@ -167,6 +184,21 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
         // When battle summary is showing, don't intercept keys here.
         // BattleSummary has its own keyboard listener for H (Rest) and J (Journey).
         if (battleSummaryRef.current?.show) return;
+
+        // Esc or P toggles pause. Handle here before the action-key
+        // dispatch so pause works even while other keys are held.
+        if (e.code === 'Escape' || e.code === 'KeyP') {
+            e.preventDefault();
+            setIsPaused(prev => {
+                const next = !prev;
+                gameState.current.isPaused = next;
+                return next;
+            });
+            return;
+        }
+
+        // If paused, ignore all other key actions (movement, attacks, etc.)
+        if (gameState.current.isPaused) return;
 
         gameState.current.keys[e.code] = true; 
         handleActionKey(e.code);
@@ -1848,6 +1880,17 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
       drawGame();
   };
 
+  // Quit to Map from the pause menu — counts as a flee (with XP penalty
+  // if no Bravery). Reuses handleFlee() logic so the player keeps their
+  // progress but pays the same cost as fleeing through the left zone.
+  // We need to unpause first so handleFlee's state mutations apply and
+  // the battle summary overlay shows correctly.
+  const handleQuitToMap = () => {
+      setIsPaused(false);
+      gameState.current.isPaused = false;
+      handleFlee();
+  };
+
   const setKey = (key: string, pressed: boolean) => {
       gameState.current.keys[key] = pressed;
   };
@@ -1880,6 +1923,60 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
             objectFit: 'contain',
           }}
         />
+
+        {/* Pause button — top-right corner, above the canvas. Hidden when
+            a battle summary is showing (victory/flee) since the player
+            can't pause a finished fight. */}
+        {!battleSummary?.show && (
+          <button
+            onClick={togglePause}
+            className="absolute top-2 right-2 z-30 bg-medieval-800/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
+            style={{ width: 'clamp(32px, 7vmin, 44px)', height: 'clamp(32px, 7vmin, 44px)' }}
+            aria-label={isPaused ? "Resume" : "Pause"}
+            title={isPaused ? "Resume (Esc)" : "Pause (Esc)"}
+          >
+            {isPaused
+              ? <Play size={20} className="text-medieval-300 ml-1" fill="currentColor" />
+              : <Pause size={20} className="text-medieval-300" fill="currentColor" />}
+          </button>
+        )}
+
+        {/* Pause overlay — modal with Resume + Quit to Map buttons.
+            Quitting counts as a flee (with XP penalty if no Bravery). */}
+        {isPaused && !battleSummary?.show && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 animate-in fade-in duration-150">
+            <div
+              className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl text-center relative overflow-hidden"
+              style={{ width: 'min(90%, 360px)', padding: 'clamp(20px, 5vmin, 40px)' }}
+            >
+              <h2 className="font-serif mb-6 text-medieval-200" style={{ fontSize: 'clamp(22px, 5vmin, 32px)' }}>
+                Paused
+              </h2>
+
+              <div className="flex flex-col gap-3 relative z-10">
+                <button
+                  onClick={togglePause}
+                  className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-2 border border-emerald-600 active:scale-95 transition-transform"
+                  style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
+                >
+                  <Play size={18} fill="currentColor" /> Resume
+                </button>
+                <button
+                  onClick={handleQuitToMap}
+                  className="w-full py-3 bg-red-900 hover:bg-red-800 text-white font-bold rounded flex items-center justify-center gap-2 border border-red-700 active:scale-95 transition-transform"
+                  style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
+                >
+                  <LogOut size={18} /> Quit to Map
+                </button>
+              </div>
+
+              <p className="mt-4 text-medieval-500" style={{ fontSize: 'clamp(9px, 2vmin, 11px)' }}>
+                Quitting counts as fleeing (XP penalty if no Bravery).
+              </p>
+            </div>
+          </div>
+        )}
+
         <BattleSummary
           summary={battleSummary}
           onRest={handleRest}
