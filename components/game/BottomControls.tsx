@@ -1,9 +1,10 @@
 import React from 'react';
 import { Item, ItemSlot, Character, Buff } from '../../types';
 import { ABILITY_DB } from '../../constants';
-import { ChevronLeft, ChevronRight, HelpCircle, Lock } from 'lucide-react';
+import { HelpCircle, Lock } from 'lucide-react';
 import { GiBroadsword } from 'react-icons/gi';
 import { renderIcon } from '../../render/icons';
+import VirtualStick from './VirtualStick';
 
 interface Props {
     character: Character;
@@ -36,30 +37,12 @@ const BottomControls: React.FC<Props> = ({
 }) => {
     return (
         <div className="shrink-0 px-3 py-2 flex justify-between items-end gap-2 z-20 bg-gradient-to-t from-black/95 via-black/70 to-transparent">
-            {/* Movement (left) */}
-            <div className="flex gap-2 shrink-0">
-                <button
-                    onPointerDown={(e) => { e.preventDefault(); onMoveLeft(true); }}
-                    onPointerUp={() => onMoveLeft(false)}
-                    onPointerLeave={() => onMoveLeft(false)}
-                    onPointerCancel={() => onMoveLeft(false)}
-                    className="bg-medieval-700/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-90 transition-transform shadow-lg touch-none"
-                    style={{ width: 'clamp(72px, 18vmin, 104px)', height: 'clamp(72px, 18vmin, 104px)' }}
-                    aria-label="Move Left"
-                >
-                    <ChevronLeft size={48} className="text-medieval-300" />
-                </button>
-                <button
-                    onPointerDown={(e) => { e.preventDefault(); onMoveRight(true); }}
-                    onPointerUp={() => onMoveRight(false)}
-                    onPointerLeave={() => onMoveRight(false)}
-                    onPointerCancel={() => onMoveRight(false)}
-                    className="bg-medieval-700/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:bg-medieval-600 active:scale-90 transition-transform shadow-lg touch-none"
-                    style={{ width: 'clamp(72px, 18vmin, 104px)', height: 'clamp(72px, 18vmin, 104px)' }}
-                    aria-label="Move Right"
-                >
-                    <ChevronRight size={48} className="text-medieval-300" />
-                </button>
+            {/* Movement (left) — horizontal virtual joystick */}
+            <div className="flex gap-2 shrink-0 items-end">
+                <VirtualStick
+                    onMoveLeft={onMoveLeft}
+                    onMoveRight={onMoveRight}
+                />
             </div>
 
             {/* Center: Player (left) + Enemy (right) HP bars */}
