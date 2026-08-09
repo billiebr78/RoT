@@ -42,8 +42,8 @@ const BottomControls: React.FC<Props> = ({
 }) => {
     return (
         <div className="absolute bottom-0 left-0 right-0 z-30 safe-bottom safe-left safe-right pointer-events-none">
-            <div className="flex items-end gap-2 px-2 py-2 pointer-events-auto">
-                {/* === Joystick (left) === */}
+            <div className="flex items-end gap-2 px-2 py-2 pointer-events-auto flex-nowrap">
+                {/* === Joystick (left, fixo) === */}
                 <div className="shrink-0">
                     <VirtualStick
                         onMoveLeft={onMoveLeft}
@@ -51,8 +51,10 @@ const BottomControls: React.FC<Props> = ({
                     />
                 </div>
 
-                {/* === HP bars (center) === */}
-                <div className="flex-1 flex gap-2 min-w-0 items-end max-w-md">
+                {/* === HP bars (center, flex-1 — ocupa espaço restante) ===
+                    min-w-0 permite encolher, max-w-md limita largura máxima
+                    pra não ficarem enormes em telas wide. */}
+                <div className="flex-1 flex gap-2 min-w-0 items-end max-w-md min-w-[100px]">
                     {/* Player HP */}
                     <div className="flex-1 bg-medieval-900/80 border border-medieval-500 rounded p-1.5 shadow-lg min-w-0">
                         <div className="flex justify-between items-baseline px-1 mb-1">
@@ -91,8 +93,10 @@ const BottomControls: React.FC<Props> = ({
                     </div>
                 </div>
 
-                {/* === Abilities + Attack (right) === */}
-                <div className="flex gap-1 items-end shrink-0">
+                {/* === Abilities + Attack (right, ml-auto empurra pra direita) ===
+                    shrink-0 garante que não encolhem. ml-auto mantém na direita
+                    mesmo em telas wide onde as HP bars não ocupam tudo. */}
+                <div className="flex gap-1 items-end shrink-0 ml-auto">
                     {/* Abilities — 3 buttons grouped tightly */}
                     <div className="flex gap-0.5">
                         {activeAbilities.slice(0, 3).map((abId, idx) => {
