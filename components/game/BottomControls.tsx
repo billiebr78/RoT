@@ -106,7 +106,7 @@ const BottomControls: React.FC<Props> = ({
                                 <button
                                     key={abId}
                                     id={`btn-ability-${abId}`}
-                                    onClick={() => onAbility(abId)}
+                                    onPointerDown={(e) => { e.preventDefault(); onAbility(abId); }}
                                     className="touch-target relative bg-medieval-700/90 border-2 border-medieval-400 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none"
                                     style={{ width: 'clamp(44px, 11vmin, 56px)', height: 'clamp(44px, 11vmin, 56px)' }}
                                     aria-label={ability.name}
@@ -130,7 +130,7 @@ const BottomControls: React.FC<Props> = ({
                     {/* Attack — largest button, rightmost */}
                     <button
                         id="btn-attack"
-                        onClick={onAttack}
+                        onPointerDown={(e) => { e.preventDefault(); onAttack(); }}
                         className="touch-target bg-red-900/90 border-2 border-red-700 rounded-full flex items-center justify-center relative active:scale-90 transition-transform touch-none"
                         style={{ width: 'clamp(56px, 14vmin, 72px)', height: 'clamp(56px, 14vmin, 72px)', boxShadow: '0 0 15px rgba(220,38,38,0.5)' }}
                         aria-label="Attack"

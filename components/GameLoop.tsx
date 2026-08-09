@@ -2021,7 +2021,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-30">
           <button
             id="btn-u1"
-            onClick={() => handleConsumeItem(ItemSlot.USABLE1)}
+            onPointerDown={(e) => { e.preventDefault(); handleConsumeItem(ItemSlot.USABLE1); }}
             className={`touch-target relative border-2 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable1 ? 'bg-medieval-600 border-medieval-400' : 'bg-gray-800 border-gray-600 opacity-50'}`}
             style={{ width: 'clamp(44px, 11vmin, 56px)', height: 'clamp(44px, 11vmin, 56px)' }}
             aria-label="Use Item 1"
@@ -2032,7 +2032,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
           </button>
           <button
             id="btn-u2"
-            onClick={() => handleConsumeItem(ItemSlot.USABLE2)}
+            onPointerDown={(e) => { e.preventDefault(); handleConsumeItem(ItemSlot.USABLE2); }}
             className={`touch-target relative border-2 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable2 ? 'bg-medieval-600 border-medieval-400' : 'bg-gray-800 border-gray-600 opacity-50'}`}
             style={{ width: 'clamp(44px, 11vmin, 56px)', height: 'clamp(44px, 11vmin, 56px)' }}
             aria-label="Use Item 2"
