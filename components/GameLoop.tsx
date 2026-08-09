@@ -983,26 +983,22 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
   const applyProjectileDamageToPlayer = (p: Projectile) => {
       const state = gameState.current;
+      // The damage on the projectile is already final — defend/barrier
+      // reductions were applied at cast time in handleEnemyAbility()
+      // (ranged attacks) or calculatePlayerDamage (player attacks).
+      // This function just applies the damage to the player's HP.
+      //
+      // Previously this function re-checked DEFENDING and barrier, but
+      // that caused double-reduction for enemy projectiles (reduced once
+      // at cast time, reduced again at impact) AND made the reduction
+      // unreliable because the enemy's AI state had changed by impact
+      // time (CASTING → COOLDOWN), so the player couldn't enter DEFENDING.
       let finalDmg = p.damage;
 
-      const barrier = state.activeBuffs.find(b => b.barrierHp && b.barrierHp > 0);
-      if (barrier && barrier.barrierHp) {
-           if (state.playerState !== 'DEFENDING') {
-                const absorbed = Math.min(finalDmg, barrier.barrierHp);
-                barrier.barrierHp -= absorbed;
-                finalDmg -= absorbed;
-                addFloatingText(state.playerX, GROUND_Y - 120, `Absorbed ${Math.floor(absorbed)}`, "cyan");
-                if (finalDmg <= 0) return;
-           }
-      }
+      if (finalDmg <= 0) return;
 
-      if (state.playerState === 'DEFENDING') {
-           finalDmg *= 0.2;
-           addFloatingText(state.playerX, GROUND_Y - 100, "Blocked!", "blue");
-           addVFX('IMPACT', state.playerX, GROUND_Y - 40, "blue");
-      } else {
-           addVFX('IMPACT', state.playerX, GROUND_Y - 40, "red");
-      }
+      // Still show the impact VFX
+      addVFX('IMPACT', state.playerX, GROUND_Y - 40, "red");
       finalDmg = Math.floor(finalDmg);
       state.playerHp -= finalDmg;
       addFloatingText(state.playerX, GROUND_Y - 80, `-${finalDmg}`, "cyan");
@@ -1152,7 +1148,34 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
       } else if (ability.effect === 'ranged') {
            // Brigandine's Ranged Attack shows "preparing attack..." during cast
            // The cast text is already shown by the AI. Here we just fire the projectile.
-           spawnProjectile('enemy', state.enemyX - 20, GROUND_Y - 50, state.playerX, baseDmg, false, 'cyan', 'damage');
+           //
+           // BUG FIX: Previously, the projectile carried the FULL baseDmg and
+           // relied on applyProjectileDamageToPlayer() to check DEFENDING at
+           // impact time. But by the time the projectile reaches the player,
+           // the enemy has already transitioned from CASTING → COOLDOWN, so
+           // isThreatened is false and the player can't enter DEFENDING.
+           // Result: ranged attacks always hit for full damage.
+           //
+           // Fix: apply the defend/barrier reduction HERE at cast time, when
+           // we know the player's state. The projectile carries the already-
+           // reduced damage, so applyProjectileDamageToPlayer just applies it.
+           let projDmg = baseDmg;
+           if (state.playerState === 'DEFENDING') {
+               projDmg *= 0.2;
+               addFloatingText(state.playerX, GROUND_Y - 100, "Blocked!", "blue");
+           } else {
+               // Apply barrier (Aura Shield) absorption at cast time too,
+               // since the barrier check in applyProjectileDamageToPlayer
+               // also requires DEFENDING state.
+               const barrier = state.activeBuffs.find(b => b.barrierHp && b.barrierHp > 0);
+               if (barrier && barrier.barrierHp) {
+                   const absorbed = Math.min(projDmg, barrier.barrierHp);
+                   barrier.barrierHp -= absorbed;
+                   projDmg -= absorbed;
+                   addFloatingText(state.playerX, GROUND_Y - 120, `Absorbed ${Math.floor(absorbed)}`, "cyan");
+               }
+           }
+           spawnProjectile('enemy', state.enemyX - 20, GROUND_Y - 50, state.playerX, projDmg, false, 'cyan', 'damage');
       } else if (ability.effect === 'buff') {
            // Stone Skin (Golem): +50% armor buff for 10 seconds
            addFloatingText(state.enemyX, GROUND_Y - 120, "Stone Skin!", "gray");
