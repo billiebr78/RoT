@@ -1969,20 +1969,22 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
        Laranja (canvas): 16:9, centrado no frame
        UI: overlays absolutos sobre o canvas (não empilham, não empurram)
     */
-    <div className="fixed inset-0 bg-black flex items-center justify-center overflow-hidden select-none touch-none safe-all">
-      {/* Frame cinza — contém canvas + overlays */}
-      <div className="relative w-full h-full bg-medieval-900 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black flex items-start justify-center overflow-hidden select-none touch-none safe-all">
+      {/* Frame cinza — contém canvas + overlays. Items-start alinha no topo. */}
+      <div className="relative w-full h-full bg-medieval-900 flex items-start justify-center">
 
-        {/* Canvas 16:9 — centrado no frame */}
+        {/* Canvas 16:9 — centrado horizontalmente, alinhado ao topo.
+            max-h-[85%] reduz o canvas pra deixar espaço pro overlay da base. */}
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="max-w-full max-h-full"
+          className="max-w-full"
           style={{
             imageRendering: 'pixelated',
             aspectRatio: '16 / 9',
             objectFit: 'contain',
+            maxHeight: '85%',
           }}
         />
 
