@@ -17,6 +17,13 @@ interface Props {
  * only responds to horizontal drag — vertical movement is ignored to
  * avoid conflicts with page scroll on mobile.
  *
+ * MULTITOUCH SUPPORT: tracks the specific pointerId that started the
+ * drag, so a second finger touching the attack button (or any other
+ * element) doesn't interfere with the joystick. Each pointer is
+ * independent — the joystick only responds to its own pointer's move
+ * and up events. This is critical for mobile play where the player
+ * needs to move and attack simultaneously.
+ *
  * Visual: a circular base with a smaller "knob" inside that follows
  * the pointer. The knob is clamped to the base radius and snaps back
  * to center on release with a CSS transition.
@@ -25,6 +32,12 @@ const VirtualStick: React.FC<Props> = ({ onMoveLeft, onMoveRight }) => {
     const baseRef = useRef<HTMLDivElement>(null);
     const [knobX, setKnobX] = useState(0); // -1 to 1 (left to right)
     const [isDragging, setIsDragging] = useState(false);
+    // Track the specific pointerId that started the drag. This is
+    // critical for multitouch — without it, a second finger on the
+    // attack button would fire pointermove events on the joystick
+    // too, causing erratic knob movement. By tracking the pointerId,
+    // we only respond to events from the finger that started the drag.
+    const dragPointerId = useRef<number | null>(null);
     // Track current move state so we only fire callbacks on transitions
     // (avoids spamming onMoveLeft(true) every pointermove event).
     const currentDir = useRef<'left' | 'right' | 'idle'>('idle');
@@ -62,11 +75,17 @@ const VirtualStick: React.FC<Props> = ({ onMoveLeft, onMoveRight }) => {
 
     const handlePointerDown = useCallback((e: React.PointerEvent) => {
         e.preventDefault();
+        // If already dragging with another pointer, ignore this one.
+        // This shouldn't normally happen because pointer capture routes
+        // events to the capturing element, but it's a safety check.
+        if (dragPointerId.current !== null) return;
         const base = baseRef.current;
         if (!base) return;
-        // Capture pointer so we keep getting move events even if the
-        // pointer leaves the base element.
+        // Capture THIS specific pointer so we keep getting its move/up
+        // events even if it leaves the base element. Other pointers
+        // (e.g. a finger on the attack button) are unaffected.
         base.setPointerCapture(e.pointerId);
+        dragPointerId.current = e.pointerId;
         setIsDragging(true);
         // Calculate where the user grabbed relative to knob center.
         // This makes the knob "follow" the pointer naturally instead
@@ -79,7 +98,12 @@ const VirtualStick: React.FC<Props> = ({ onMoveLeft, onMoveRight }) => {
     }, []);
 
     const handlePointerMove = useCallback((e: React.PointerEvent) => {
-        if (!isDragging) return;
+        // Only respond to the pointer that started the drag. This is
+        // the key fix for multitouch — without this check, a second
+        // finger on another element (attack button, ability button)
+        // would fire pointermove events here because of event bubbling,
+        // causing the knob to jump erratically.
+        if (dragPointerId.current !== e.pointerId) return;
         const base = baseRef.current;
         if (!base) return;
         const rect = base.getBoundingClientRect();
@@ -90,13 +114,18 @@ const VirtualStick: React.FC<Props> = ({ onMoveLeft, onMoveRight }) => {
         const normalizedX = Math.max(-1, Math.min(1, rawX - grabOffset.current));
         setKnobX(normalizedX);
         updateMoveState(normalizedX);
-    }, [isDragging, updateMoveState]);
+    }, [updateMoveState]);
 
     const handlePointerUp = useCallback((e: React.PointerEvent) => {
+        // Only release if this is the pointer that started the drag.
+        // A pointerup from a different finger (e.g. releasing the
+        // attack button) should NOT release the joystick.
+        if (dragPointerId.current !== e.pointerId) return;
         const base = baseRef.current;
         if (base) {
             try { base.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
         }
+        dragPointerId.current = null;
         setIsDragging(false);
         setKnobX(0);
         // Release movement
