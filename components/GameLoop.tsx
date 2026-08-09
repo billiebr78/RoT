@@ -542,7 +542,12 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
             state.castTimer = 0;
             state.pendingAbilityId = null;
         }
-        const isThreatened = state.enemy && (state.enemyAI.state === 'PREPARE' || state.enemyAI.state === 'ATTACK' || state.enemyAI.state === 'CASTING');
+        const isThreatened = state.enemy && (
+            state.enemyAI.state === 'PREPARE' ||
+            state.enemyAI.state === 'ATTACK' ||
+            state.enemyAI.state === 'CASTING' ||
+            state.projectiles.some(p => p.owner === 'enemy')
+        );
 
         if (isThreatened && state.attackTimer <= 0) {
             isDefending = true;
@@ -983,22 +988,26 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
 
   const applyProjectileDamageToPlayer = (p: Projectile) => {
       const state = gameState.current;
-      // The damage on the projectile is already final — defend/barrier
-      // reductions were applied at cast time in handleEnemyAbility()
-      // (ranged attacks) or calculatePlayerDamage (player attacks).
-      // This function just applies the damage to the player's HP.
-      //
-      // Previously this function re-checked DEFENDING and barrier, but
-      // that caused double-reduction for enemy projectiles (reduced once
-      // at cast time, reduced again at impact) AND made the reduction
-      // unreliable because the enemy's AI state had changed by impact
-      // time (CASTING → COOLDOWN), so the player couldn't enter DEFENDING.
       let finalDmg = p.damage;
 
-      if (finalDmg <= 0) return;
+      const barrier = state.activeBuffs.find(b => b.barrierHp && b.barrierHp > 0);
+      if (barrier && barrier.barrierHp) {
+           if (state.playerState !== 'DEFENDING') {
+                const absorbed = Math.min(finalDmg, barrier.barrierHp);
+                barrier.barrierHp -= absorbed;
+                finalDmg -= absorbed;
+                addFloatingText(state.playerX, GROUND_Y - 120, `Absorbed ${Math.floor(absorbed)}`, "cyan");
+                if (finalDmg <= 0) return;
+           }
+      }
 
-      // Still show the impact VFX
-      addVFX('IMPACT', state.playerX, GROUND_Y - 40, "red");
+      if (state.playerState === 'DEFENDING') {
+           finalDmg *= 0.2;
+           addFloatingText(state.playerX, GROUND_Y - 100, "Blocked!", "blue");
+           addVFX('IMPACT', state.playerX, GROUND_Y - 40, "blue");
+      } else {
+           addVFX('IMPACT', state.playerX, GROUND_Y - 40, "red");
+      }
       finalDmg = Math.floor(finalDmg);
       state.playerHp -= finalDmg;
       addFloatingText(state.playerX, GROUND_Y - 80, `-${finalDmg}`, "cyan");
@@ -1146,36 +1155,11 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
            state.pendingAbilityId = null;
 
       } else if (ability.effect === 'ranged') {
-           // Brigandine's Ranged Attack shows "preparing attack..." during cast
-           // The cast text is already shown by the AI. Here we just fire the projectile.
-           //
-           // BUG FIX: Previously, the projectile carried the FULL baseDmg and
-           // relied on applyProjectileDamageToPlayer() to check DEFENDING at
-           // impact time. But by the time the projectile reaches the player,
-           // the enemy has already transitioned from CASTING → COOLDOWN, so
-           // isThreatened is false and the player can't enter DEFENDING.
-           // Result: ranged attacks always hit for full damage.
-           //
-           // Fix: apply the defend/barrier reduction HERE at cast time, when
-           // we know the player's state. The projectile carries the already-
-           // reduced damage, so applyProjectileDamageToPlayer just applies it.
-           let projDmg = baseDmg;
-           if (state.playerState === 'DEFENDING') {
-               projDmg *= 0.2;
-               addFloatingText(state.playerX, GROUND_Y - 100, "Blocked!", "blue");
-           } else {
-               // Apply barrier (Aura Shield) absorption at cast time too,
-               // since the barrier check in applyProjectileDamageToPlayer
-               // also requires DEFENDING state.
-               const barrier = state.activeBuffs.find(b => b.barrierHp && b.barrierHp > 0);
-               if (barrier && barrier.barrierHp) {
-                   const absorbed = Math.min(projDmg, barrier.barrierHp);
-                   barrier.barrierHp -= absorbed;
-                   projDmg -= absorbed;
-                   addFloatingText(state.playerX, GROUND_Y - 120, `Absorbed ${Math.floor(absorbed)}`, "cyan");
-               }
-           }
-           spawnProjectile('enemy', state.enemyX - 20, GROUND_Y - 50, state.playerX, projDmg, false, 'cyan', 'damage');
+           // Ranged attack: spawn a projectile with full damage. The
+           // defend/barrier reduction is applied at impact time by
+           // applyProjectileDamageToPlayer(), which checks if the player
+           // is DEFENDING when the projectile hits.
+           spawnProjectile('enemy', state.enemyX - 20, GROUND_Y - 50, state.playerX, baseDmg, false, 'cyan', 'damage');
       } else if (ability.effect === 'buff') {
            // Stone Skin (Golem): +50% armor buff for 10 seconds
            addFloatingText(state.enemyX, GROUND_Y - 120, "Stone Skin!", "gray");
