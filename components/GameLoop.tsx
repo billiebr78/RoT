@@ -1955,117 +1955,130 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
   });
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col overflow-hidden select-none touch-none safe-top">
-      <div className="flex-1 flex items-center justify-center min-h-0 relative overflow-hidden">
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          className="max-w-full max-h-full"
-          style={{
-            imageRendering: 'pixelated',
-            aspectRatio: '16 / 9',
-            objectFit: 'contain',
-          }}
-        />
+    /* === 3-LAYER LAYOUT (from wireframe) ===
+       Layer 1 (outer, preto): dynamic viewport that absorbs extra space
+                from different screen aspect ratios. Always black.
+       Layer 2 (middle, cinza): fixed UI frame — the "real estate" where
+                HUD elements live. Has the top bar (fullscreen/pause) and
+                bottom bar (controls). Medieval-900 background.
+       Layer 3 (inner, laranja): the game canvas itself, fixed 16:9 aspect
+                ratio. Contains player, enemy, effects, damage numbers.
+    */
+    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden select-none touch-none safe-all">
+      {/* Layer 2: cinza frame — contains top bar, canvas, bottom bar */}
+      <div className="flex flex-col w-full h-full max-w-full max-h-full bg-medieval-900">
 
-        {/* Fullscreen button — top-left corner. Uses the Fullscreen API
-            (requestFullscreen/exitFullscreen). On iOS Safari this may not
-            work — the button will just do nothing. On Android Chrome and
-            desktop it enters true fullscreen (hides browser chrome). */}
-        <button
-          onClick={toggleFullscreen}
-          className="absolute top-2 left-2 z-30 bg-medieval-800/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
-          style={{ width: 'clamp(32px, 7vmin, 44px)', height: 'clamp(32px, 7vmin, 44px)' }}
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {isFullscreen
-            ? <Minimize size={20} className="text-medieval-300" />
-            : <Maximize size={20} className="text-medieval-300" />}
-        </button>
-
-        {/* Pause button — top-right corner, above the canvas. Hidden when
-            a battle summary is showing (victory/flee) since the player
-            can't pause a finished fight. */}
-        {!battleSummary?.show && (
+        {/* === TOP BAR (cinza) — fullscreen + pause === */}
+        <div className="flex justify-between items-center px-2 py-1.5 bg-medieval-800 border-b-2 border-medieval-600 shrink-0">
+          {/* Fullscreen button — top-left */}
           <button
-            onClick={togglePause}
-            className="absolute top-2 right-2 z-30 bg-medieval-800/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
-            style={{ width: 'clamp(32px, 7vmin, 44px)', height: 'clamp(32px, 7vmin, 44px)' }}
-            aria-label={isPaused ? "Resume" : "Pause"}
-            title={isPaused ? "Resume (Esc)" : "Pause (Esc)"}
+            onClick={toggleFullscreen}
+            className="bg-medieval-700/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
+            style={{ width: 'clamp(36px, 8vmin, 48px)', height: 'clamp(36px, 8vmin, 48px)' }}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
-            {isPaused
-              ? <Play size={20} className="text-medieval-300 ml-1" fill="currentColor" />
-              : <Pause size={20} className="text-medieval-300" fill="currentColor" />}
+            {isFullscreen
+              ? <Minimize size={22} className="text-medieval-300" />
+              : <Maximize size={22} className="text-medieval-300" />}
           </button>
-        )}
 
-        {/* Pause overlay — modal with Resume + Quit to Map buttons.
-            Quitting counts as a flee (with XP penalty if no Bravery). */}
-        {isPaused && !battleSummary?.show && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 animate-in fade-in duration-150">
-            <div
-              className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl text-center relative overflow-hidden"
-              style={{ width: 'min(90%, 360px)', padding: 'clamp(20px, 5vmin, 40px)' }}
+          {/* Pause button — top-right. Hidden when battle summary shows. */}
+          {!battleSummary?.show && (
+            <button
+              onClick={togglePause}
+              className="bg-medieval-700/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
+              style={{ width: 'clamp(36px, 8vmin, 48px)', height: 'clamp(36px, 8vmin, 48px)' }}
+              aria-label={isPaused ? "Resume" : "Pause"}
+              title={isPaused ? "Resume (Esc)" : "Pause (Esc)"}
             >
-              <h2 className="font-serif mb-6 text-medieval-200" style={{ fontSize: 'clamp(22px, 5vmin, 32px)' }}>
-                Paused
-              </h2>
+              {isPaused
+                ? <Play size={22} className="text-medieval-300 ml-1" fill="currentColor" />
+                : <Pause size={22} className="text-medieval-300" fill="currentColor" />}
+            </button>
+          )}
+        </div>
 
-              <div className="flex flex-col gap-3 relative z-10">
-                <button
-                  onClick={togglePause}
-                  className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-2 border border-emerald-600 active:scale-95 transition-transform"
-                  style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
-                >
-                  <Play size={18} fill="currentColor" /> Resume
-                </button>
-                <button
-                  onClick={handleQuitToMap}
-                  className="w-full py-3 bg-red-900 hover:bg-red-800 text-white font-bold rounded flex items-center justify-center gap-2 border border-red-700 active:scale-95 transition-transform"
-                  style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
-                >
-                  <LogOut size={18} /> Quit to Map
-                </button>
+        {/* === CANVAS AREA (laranja) — 16:9, centered, letterboxed === */}
+        <div className="flex-1 flex items-center justify-center min-h-0 relative overflow-hidden bg-black">
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="max-w-full max-h-full"
+            style={{
+              imageRendering: 'pixelated',
+              aspectRatio: '16 / 9',
+              objectFit: 'contain',
+            }}
+          />
+
+          {/* Pause overlay — rendered inside the canvas area so it
+              covers only the game, not the HUD. */}
+          {isPaused && !battleSummary?.show && (
+            <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 animate-in fade-in duration-150">
+              <div
+                className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl text-center relative overflow-hidden"
+                style={{ width: 'min(90%, 360px)', padding: 'clamp(20px, 5vmin, 40px)' }}
+              >
+                <h2 className="font-serif mb-6 text-medieval-200" style={{ fontSize: 'clamp(22px, 5vmin, 32px)' }}>
+                  Paused
+                </h2>
+
+                <div className="flex flex-col gap-3 relative z-10">
+                  <button
+                    onClick={togglePause}
+                    className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-2 border border-emerald-600 active:scale-95 transition-transform"
+                    style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
+                  >
+                    <Play size={18} fill="currentColor" /> Resume
+                  </button>
+                  <button
+                    onClick={handleQuitToMap}
+                    className="w-full py-3 bg-red-900 hover:bg-red-800 text-white font-bold rounded flex items-center justify-center gap-2 border border-red-700 active:scale-95 transition-transform"
+                    style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
+                  >
+                    <LogOut size={18} /> Quit to Map
+                  </button>
+                </div>
+
+                <p className="mt-4 text-medieval-500" style={{ fontSize: 'clamp(9px, 2vmin, 11px)' }}>
+                  Quitting counts as fleeing (XP penalty if no Bravery).
+                </p>
               </div>
-
-              <p className="mt-4 text-medieval-500" style={{ fontSize: 'clamp(9px, 2vmin, 11px)' }}>
-                Quitting counts as fleeing (XP penalty if no Bravery).
-              </p>
             </div>
-          </div>
-        )}
+          )}
 
-        <BattleSummary
-          summary={battleSummary}
-          onRest={handleRest}
-          onContinue={handleContinueJourney}
-          restHealAmount={Math.floor(calculateTotalStats(characterRef.current)[Attribute.HT] * 1.2)}
+          <BattleSummary
+            summary={battleSummary}
+            onRest={handleRest}
+            onContinue={handleContinueJourney}
+            restHealAmount={Math.floor(calculateTotalStats(characterRef.current)[Attribute.HT] * 1.2)}
+          />
+        </div>
+
+        {/* === BOTTOM BAR (cinza) — HUD controls === */}
+        <BottomControls
+          character={character}
+          enemyName={hudStatic.enemyName}
+          enemyMaxHp={hudStatic.enemyMaxHp}
+          enemyLevel={hudStatic.enemyLevel}
+          buffs={hudStatic.buffs}
+          equippedUsable1={hudStatic.equippedUsable1}
+          equippedUsable2={hudStatic.equippedUsable2}
+          activeAbilities={activeAbilities}
+          cooldownRefs={cooldownRefs}
+          playerHpBarRef={playerHpBarRef}
+          playerHpTextRef={playerHpTextRef}
+          enemyHpBarRef={enemyHpBarRef}
+          enemyContainerRef={enemyContainerRef}
+          onMoveLeft={(pressed) => setKey('ArrowLeft', pressed)}
+          onMoveRight={(pressed) => setKey('ArrowRight', pressed)}
+          onAttack={handleManualAttack}
+          onAbility={handleAbilityUse}
+          onUseItem={handleConsumeItem}
         />
       </div>
-
-      <BottomControls
-        character={character}
-        enemyName={hudStatic.enemyName}
-        enemyMaxHp={hudStatic.enemyMaxHp}
-        enemyLevel={hudStatic.enemyLevel}
-        buffs={hudStatic.buffs}
-        equippedUsable1={hudStatic.equippedUsable1}
-        equippedUsable2={hudStatic.equippedUsable2}
-        activeAbilities={activeAbilities}
-        cooldownRefs={cooldownRefs}
-        playerHpBarRef={playerHpBarRef}
-        playerHpTextRef={playerHpTextRef}
-        enemyHpBarRef={enemyHpBarRef}
-        enemyContainerRef={enemyContainerRef}
-        onMoveLeft={(pressed) => setKey('ArrowLeft', pressed)}
-        onMoveRight={(pressed) => setKey('ArrowRight', pressed)}
-        onAttack={handleManualAttack}
-        onAbility={handleAbilityUse}
-        onUseItem={handleConsumeItem}
-      />
     </div>
   );
 };
