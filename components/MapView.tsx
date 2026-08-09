@@ -266,9 +266,9 @@ const MapView: React.FC<Props> = ({
     ].filter(c => canMoveTo(c.row, c.col));
 
     return (
-        <div className="fixed inset-0 bg-medieval-900 text-medieval-100 flex flex-col overflow-hidden">
+        <div className="fixed inset-0 bg-medieval-900 text-medieval-100 flex flex-col overflow-hidden safe-top safe-left safe-right">
             {/* Header */}
-            <header className="bg-medieval-800 border-b-2 border-medieval-600 p-2 sm:p-3 flex justify-between items-center shrink-0 gap-2">
+            <header className="bg-medieval-800 border-b-2 border-medieval-600 p-2 sm:p-3 flex justify-between items-center shrink-0 gap-2 safe-top">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-medieval-600 rounded-full flex items-center justify-center border-2 border-medieval-400 shrink-0">
                         <User size={16} className="sm:hidden" />
@@ -377,7 +377,7 @@ const MapView: React.FC<Props> = ({
             </div>
 
             {/* Bottom panel */}
-            <div className="bg-medieval-800 border-t-2 border-medieval-600 p-2 sm:p-3 shrink-0">
+            <div className="bg-medieval-800 border-t-2 border-medieval-600 p-2 sm:p-3 shrink-0 safe-bottom safe-left safe-right">
                 {message && (
                     <div className="text-center text-sm text-medieval-300 mb-2 italic">{message}</div>
                 )}

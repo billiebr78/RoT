@@ -8,6 +8,16 @@ export default {
     './services/**/*.{ts,tsx}',
   ],
   theme: {
+    // Mobile-first breakpoints. Default (no prefix) = mobile.
+    // Use sm:, md:, lg: for larger screens.
+    screens: {
+      'xs': '360px',   // very small phones (iPhone SE 1st gen)
+      'sm': '640px',   // large phones / small tablets (portrait)
+      'md': '768px',   // tablets (portrait)
+      'lg': '1024px',  // tablets (landscape) / small desktop
+      'xl': '1280px',  // desktop
+      '2xl': '1536px', // large desktop
+    },
     extend: {
       colors: {
         medieval: {
@@ -24,7 +34,15 @@ export default {
       },
       fontFamily: {
         serif: ['Merriweather', 'serif'],
-      }
+      },
+      // Spacing utilities for safe areas (notch, home indicator).
+      // Usage: pb-safe, pt-safe, etc.
+      padding: {
+        'safe-top': 'env(safe-area-inset-top, 0px)',
+        'safe-bottom': 'env(safe-area-inset-bottom, 0px)',
+        'safe-left': 'env(safe-area-inset-left, 0px)',
+        'safe-right': 'env(safe-area-inset-right, 0px)',
+      },
     }
   },
   plugins: [],

@@ -296,7 +296,7 @@ const Hub: React.FC<Props> = ({ character, onUpdateCharacter, onStartJourney, on
     };
 
     return (
-        <div className="fixed inset-0 bg-medieval-900 text-medieval-100 flex flex-col relative overflow-y-auto" onClick={() => setInteractionMenu(null)}>
+        <div className="fixed inset-0 bg-medieval-900 text-medieval-100 flex flex-col relative overflow-y-auto safe-top safe-bottom safe-left safe-right" onClick={() => setInteractionMenu(null)}>
             <HubHeader
                 character={character}
                 localHp={localHp}

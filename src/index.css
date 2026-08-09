@@ -45,3 +45,67 @@ canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
+
+/* === SAFE AREA SUPPORT ===
+   Ensures content doesn't go under notches, home indicators, or
+   status bars on modern phones. Applied via the .safe-* utility
+   classes below, used by full-screen containers (combat, map, hub). */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.safe-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.safe-all {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* === TOUCH TARGET MINIMUM ===
+   Apple/Google guidelines: minimum 44x44px for any tappable element.
+   Applied to combat buttons and UI controls to ensure they're never
+   too small to tap accurately. */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* === MOBILE-FIRST RESPONSIVE UTILITIES ===
+   Breakpoints:
+   - default (0-639px): mobile — vertical layouts, stacked elements
+   - sm (640px+): tablet — hybrid layout
+   - md (768px+): small desktop / large tablet
+   - lg (1024px+): desktop — horizontal layouts, side-by-side
+*/
+
+/* === COMBAT HUD GRID LAYOUT ===
+   Mobile-first: HP bars on top row, controls on bottom row.
+   Desktop (≥640px): all in one row — HP bars | controls (side by side). */
+.combat-hud-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "playerHp enemyHp"
+    "controls controls";
+}
+@media (min-width: 640px) {
+  .combat-hud-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas: "playerHp enemyHp controls";
+  }
+}
+.combat-hud-player-hp { grid-area: playerHp; }
+.combat-hud-enemy-hp { grid-area: enemyHp; }
+.combat-hud-controls { grid-area: controls; }
+
+
+

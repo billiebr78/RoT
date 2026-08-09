@@ -133,7 +133,7 @@ const App: React.FC = () => {
   }, [screen]);
 
   return (
-    <div className="fixed inset-0 bg-medieval-900 text-white font-sans overflow-y-auto">
+    <div className="fixed inset-0 bg-medieval-900 text-white font-sans overflow-y-auto safe-top safe-bottom safe-left safe-right">
       {screen === 'splash' && (
         <div className="fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-950 to-black relative overflow-auto">
            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-black/50 to-black"></div>

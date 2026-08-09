@@ -1932,7 +1932,7 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
   });
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col overflow-hidden select-none touch-none">
+    <div className="fixed inset-0 bg-black flex flex-col overflow-hidden select-none touch-none safe-top">
       <div className="flex-1 flex items-center justify-center min-h-0 relative overflow-hidden">
         <canvas
           ref={canvasRef}
