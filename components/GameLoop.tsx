@@ -6,7 +6,7 @@ import { ABILITY_DB, getCritChance, getEvasion, POTION_COOLDOWN, SCROLL_DB, getE
 import { draw as drawScene, CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, buildEnemyPalette, MAX_PARTICLES, ARENA_WIDTH, FLEE_ZONE_WIDTH, PLAYER_SPAWN_X, ENEMY_SPAWN_X } from '../render/canvas';
 import BottomControls from './game/BottomControls';
 import BattleSummary from './game/BattleSummary';
-import { Pause, Play, LogOut } from 'lucide-react';
+import { Pause, Play, LogOut, Maximize, Minimize } from 'lucide-react';
 
 interface Props {
   character: Character;
@@ -143,6 +143,29 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
   // the overlay. The game loop already checks isPaused to skip updates,
   // so toggling this freezes combat, projectiles, AI, everything.
   const [isPaused, setIsPaused] = useState(false);
+
+  // Fullscreen state — tracks whether the document is in fullscreen mode
+  // so the button icon toggles between Maximize (enter) and Minimize (exit).
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {
+        // Some browsers (iOS Safari) don't support fullscreen API.
+        // Fail silently — the button just won't do anything.
+      });
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  // Listen for fullscreen change events (including when the user exits
+  // via Esc or browser controls) so the icon stays in sync.
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
 
   const togglePause = () => {
     // Don't allow pause if a battle summary (victory/flee) is showing —
@@ -1945,6 +1968,22 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
             objectFit: 'contain',
           }}
         />
+
+        {/* Fullscreen button — top-left corner. Uses the Fullscreen API
+            (requestFullscreen/exitFullscreen). On iOS Safari this may not
+            work — the button will just do nothing. On Android Chrome and
+            desktop it enters true fullscreen (hides browser chrome). */}
+        <button
+          onClick={toggleFullscreen}
+          className="absolute top-2 left-2 z-30 bg-medieval-800/90 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
+          style={{ width: 'clamp(32px, 7vmin, 44px)', height: 'clamp(32px, 7vmin, 44px)' }}
+          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen
+            ? <Minimize size={20} className="text-medieval-300" />
+            : <Maximize size={20} className="text-medieval-300" />}
+        </button>
 
         {/* Pause button — top-right corner, above the canvas. Hidden when
             a battle summary is showing (victory/flee) since the player

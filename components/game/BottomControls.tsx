@@ -102,21 +102,13 @@ const BottomControls: React.FC<Props> = ({
                     </div>
                 </div>
 
-                {/* Controls row — joystick + items + abilities + attack.
-                    On mobile this spans full width (below HP bars).
-                    On desktop it sits to the right of HP bars. */}
-                <div className="combat-hud-controls flex items-end gap-1.5 flex-wrap sm:flex-nowrap justify-end sm:justify-start">
-                    {/* Joystick — single instance. Inside the controls row,
-                        positioned first (left) via flex order. */}
-                    <div className="shrink-0">
-                        <VirtualStick
-                            onMoveLeft={onMoveLeft}
-                            onMoveRight={onMoveRight}
-                        />
-                    </div>
-
-                    {/* Actions (items, abilities, attack) — pushed right */}
-                    <div className="flex gap-1.5 items-end shrink-0 ml-auto">
+                {/* Controls row — actions on the LEFT, joystick on the RIGHT.
+                    The attack button is the most-used action, so it goes
+                    on the left where it's easiest to reach with the thumb.
+                    The joystick (movement) goes on the right. */}
+                <div className="combat-hud-controls flex items-end gap-1.5 flex-wrap sm:flex-nowrap justify-start sm:justify-end">
+                    {/* Actions (items, abilities, attack) — on the LEFT */}
+                    <div className="flex gap-1.5 items-end shrink-0">
                         {/* Usable items */}
                         <div className="flex flex-col gap-1">
                             <button
@@ -185,6 +177,14 @@ const BottomControls: React.FC<Props> = ({
                             <span className="absolute top-0 right-0 text-red-200 font-bold bg-black/80 rounded text-[10px] px-1">H</span>
                             <div ref={el => { if (el) cooldownRefs.current['auto_attack'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80 pointer-events-none" style={{ height: '0%', opacity: 0 }}></div>
                         </button>
+                    </div>
+
+                    {/* Joystick — on the RIGHT side (movement with right thumb) */}
+                    <div className="shrink-0 ml-auto">
+                        <VirtualStick
+                            onMoveLeft={onMoveLeft}
+                            onMoveRight={onMoveRight}
+                        />
                     </div>
                 </div>
             </div>
