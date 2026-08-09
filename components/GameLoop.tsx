@@ -1963,137 +1963,128 @@ const GameLoop: React.FC<Props> = ({ character, onExit, onDeath, presetEnemy, on
   });
 
   return (
-    /* === OVERLAY LAYOUT (from wireframe) ===
-       Canvas fills ENTIRE screen. All UI floats ON TOP as overlays.
-       Nothing pushes or squeezes the canvas.
+    /* === WIREFRAME LAYOUT ===
+       Preto (outer): dinâmico, absorve diferenças de tela
+       Cinza (frame): medieval-900, contém canvas + overlays de UI
+       Laranja (canvas): 16:9, centrado no frame
+       UI: overlays absolutos sobre o canvas (não empilham, não empurram)
     */
-    <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none safe-all relative">
-      {/* Canvas — fills the screen, 16:9, centered, letterboxed by black */}
-      <canvas
-        ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-        className="absolute inset-0 w-full h-full"
-        style={{
-          imageRendering: 'pixelated',
-          aspectRatio: '16 / 9',
-          objectFit: 'contain',
-        }}
-      />
+    <div className="fixed inset-0 bg-black flex items-center justify-center overflow-hidden select-none touch-none safe-all">
+      {/* Frame cinza — contém canvas + overlays */}
+      <div className="relative w-full h-full bg-medieval-900 flex items-center justify-center">
 
-      {/* === TOP OVERLAY — fullscreen + pause (transparent, floats over canvas) === */}
-      <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-2 z-30 pointer-events-none">
-        <button
-          onClick={toggleFullscreen}
-          className="pointer-events-auto bg-medieval-800/80 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
-          style={{ width: 'clamp(36px, 8vmin, 48px)', height: 'clamp(36px, 8vmin, 48px)' }}
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {isFullscreen
-            ? <Minimize size={22} className="text-medieval-300" />
-            : <Maximize size={22} className="text-medieval-300" />}
-        </button>
+        {/* Canvas 16:9 — centrado no frame */}
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          className="max-w-full max-h-full"
+          style={{
+            imageRendering: 'pixelated',
+            aspectRatio: '16 / 9',
+            objectFit: 'contain',
+          }}
+        />
 
-        {!battleSummary?.show && (
+        {/* === OVERLAY: fullscreen + pause (topo, sobre o canvas) === */}
+        <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-2 z-30 pointer-events-none">
           <button
-            onClick={togglePause}
-            className="pointer-events-auto bg-medieval-800/80 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
+            onClick={toggleFullscreen}
+            className="pointer-events-auto bg-medieval-700 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
             style={{ width: 'clamp(36px, 8vmin, 48px)', height: 'clamp(36px, 8vmin, 48px)' }}
-            aria-label={isPaused ? "Resume" : "Pause"}
-            title={isPaused ? "Resume (Esc)" : "Pause (Esc)"}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
-            {isPaused
-              ? <Play size={22} className="text-medieval-300 ml-1" fill="currentColor" />
-              : <Pause size={22} className="text-medieval-300" fill="currentColor" />}
+            {isFullscreen
+              ? <Minimize size={22} className="text-medieval-300" />
+              : <Maximize size={22} className="text-medieval-300" />}
           </button>
-        )}
-      </div>
 
-      {/* === RIGHT SIDE OVERLAY — usable items (floats over canvas, right side) === */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-30">
-        <button
-          id="btn-u1"
-          onClick={() => handleConsumeItem(ItemSlot.USABLE1)}
-          className={`touch-target relative border-2 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable1 ? 'bg-medieval-600/90 border-medieval-400' : 'bg-gray-800/80 border-gray-600 opacity-50'}`}
-          style={{ width: 'clamp(44px, 11vmin, 56px)', height: 'clamp(44px, 11vmin, 56px)' }}
-          aria-label="Use Item 1"
-        >
-          {hudStatic.equippedUsable1 ? (hudStatic.equippedUsable1.icon ? renderIcon(hudStatic.equippedUsable1.icon, 22, 'text-red-400') : <HelpCircle size={22} className="text-gray-500" />) : <HelpCircle size={22} className="text-gray-500" />}
-          <span className="absolute top-0 left-0 text-gray-400 bg-black/80 rounded font-bold text-[10px] px-1">U</span>
-          <div ref={el => { if (el) cooldownRefs.current['usable1'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80" style={{ height: '0%', opacity: 0 }}></div>
-        </button>
-        <button
-          id="btn-u2"
-          onClick={() => handleConsumeItem(ItemSlot.USABLE2)}
-          className={`touch-target relative border-2 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable2 ? 'bg-medieval-600/90 border-medieval-400' : 'bg-gray-800/80 border-gray-600 opacity-50'}`}
-          style={{ width: 'clamp(44px, 11vmin, 56px)', height: 'clamp(44px, 11vmin, 56px)' }}
-          aria-label="Use Item 2"
-        >
-          {hudStatic.equippedUsable2 ? (hudStatic.equippedUsable2.icon ? renderIcon(hudStatic.equippedUsable2.icon, 22, 'text-red-400') : <HelpCircle size={22} className="text-gray-500" />) : <HelpCircle size={22} className="text-gray-500" />}
-          <span className="absolute top-0 left-0 text-gray-400 bg-black/80 rounded font-bold text-[10px] px-1">I</span>
-          <div ref={el => { if (el) cooldownRefs.current['usable2'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80" style={{ height: '0%', opacity: 0 }}></div>
-        </button>
-      </div>
-
-      {/* === BOTTOM OVERLAY — joystick + HP bars + abilities + attack (floats over canvas) === */}
-      <BottomControls
-        character={character}
-        enemyName={hudStatic.enemyName}
-        enemyMaxHp={hudStatic.enemyMaxHp}
-        enemyLevel={hudStatic.enemyLevel}
-        buffs={hudStatic.buffs}
-        activeAbilities={activeAbilities}
-        cooldownRefs={cooldownRefs}
-        playerHpBarRef={playerHpBarRef}
-        playerHpTextRef={playerHpTextRef}
-        enemyHpBarRef={enemyHpBarRef}
-        enemyContainerRef={enemyContainerRef}
-        onMoveLeft={(pressed) => setKey('ArrowLeft', pressed)}
-        onMoveRight={(pressed) => setKey('ArrowRight', pressed)}
-        onAttack={handleManualAttack}
-        onAbility={handleAbilityUse}
-      />
-
-      {/* === PAUSE OVERLAY === */}
-      {isPaused && !battleSummary?.show && (
-        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 animate-in fade-in duration-150">
-          <div
-            className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl text-center relative overflow-hidden"
-            style={{ width: 'min(90%, 360px)', padding: 'clamp(20px, 5vmin, 40px)' }}
-          >
-            <h2 className="font-serif mb-6 text-medieval-200" style={{ fontSize: 'clamp(22px, 5vmin, 32px)' }}>
-              Paused
-            </h2>
-            <div className="flex flex-col gap-3 relative z-10">
-              <button
-                onClick={togglePause}
-                className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-2 border border-emerald-600 active:scale-95 transition-transform"
-                style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
-              >
-                <Play size={18} fill="currentColor" /> Resume
-              </button>
-              <button
-                onClick={handleQuitToMap}
-                className="w-full py-3 bg-red-900 hover:bg-red-800 text-white font-bold rounded flex items-center justify-center gap-2 border border-red-700 active:scale-95 transition-transform"
-                style={{ fontSize: 'clamp(13px, 3vmin, 16px)' }}
-              >
-                <LogOut size={18} /> Quit to Map
-              </button>
-            </div>
-            <p className="mt-4 text-medieval-500" style={{ fontSize: 'clamp(9px, 2vmin, 11px)' }}>
-              Quitting counts as fleeing (XP penalty if no Bravery).
-            </p>
-          </div>
+          {!battleSummary?.show && (
+            <button
+              onClick={togglePause}
+              className="pointer-events-auto bg-medieval-700 border-2 border-medieval-500 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-lg touch-none"
+              style={{ width: 'clamp(36px, 8vmin, 48px)', height: 'clamp(36px, 8vmin, 48px)' }}
+              aria-label={isPaused ? "Resume" : "Pause"}
+              title={isPaused ? "Resume (Esc)" : "Pause (Esc)"}
+            >
+              {isPaused
+                ? <Play size={22} className="text-medieval-300 ml-1" fill="currentColor" />
+                : <Pause size={22} className="text-medieval-300" fill="currentColor" />}
+            </button>
+          )}
         </div>
-      )}
 
-      <BattleSummary
-        summary={battleSummary}
-        onRest={handleRest}
-        onContinue={handleContinueJourney}
-        restHealAmount={Math.floor(calculateTotalStats(characterRef.current)[Attribute.HT] * 1.2)}
-      />
+        {/* === OVERLAY: items usáveis (lado direito, sobre o canvas) === */}
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-30">
+          <button
+            id="btn-u1"
+            onClick={() => handleConsumeItem(ItemSlot.USABLE1)}
+            className={`touch-target relative border-2 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable1 ? 'bg-medieval-600 border-medieval-400' : 'bg-gray-800 border-gray-600 opacity-50'}`}
+            style={{ width: 'clamp(44px, 11vmin, 56px)', height: 'clamp(44px, 11vmin, 56px)' }}
+            aria-label="Use Item 1"
+          >
+            {hudStatic.equippedUsable1 ? (hudStatic.equippedUsable1.icon ? renderIcon(hudStatic.equippedUsable1.icon, 22, 'text-red-400') : <HelpCircle size={22} className="text-gray-500" />) : <HelpCircle size={22} className="text-gray-500" />}
+            <span className="absolute top-0 left-0 text-gray-400 bg-black/80 rounded font-bold text-[10px] px-1">U</span>
+            <div ref={el => { if (el) cooldownRefs.current['usable1'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80" style={{ height: '0%', opacity: 0 }}></div>
+          </button>
+          <button
+            id="btn-u2"
+            onClick={() => handleConsumeItem(ItemSlot.USABLE2)}
+            className={`touch-target relative border-2 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-none ${hudStatic.equippedUsable2 ? 'bg-medieval-600 border-medieval-400' : 'bg-gray-800 border-gray-600 opacity-50'}`}
+            style={{ width: 'clamp(44px, 11vmin, 56px)', height: 'clamp(44px, 11vmin, 56px)' }}
+            aria-label="Use Item 2"
+          >
+            {hudStatic.equippedUsable2 ? (hudStatic.equippedUsable2.icon ? renderIcon(hudStatic.equippedUsable2.icon, 22, 'text-red-400') : <HelpCircle size={22} className="text-gray-500" />) : <HelpCircle size={22} className="text-gray-500" />}
+            <span className="absolute top-0 left-0 text-gray-400 bg-black/80 rounded font-bold text-[10px] px-1">I</span>
+            <div ref={el => { if (el) cooldownRefs.current['usable2'] = el }} className="absolute bottom-0 left-0 right-0 bg-black/80" style={{ height: '0%', opacity: 0 }}></div>
+          </button>
+        </div>
+
+        {/* === OVERLAY: joystick + HP bars + abilities + attack (base, sobre o canvas) === */}
+        <BottomControls
+          character={character}
+          enemyName={hudStatic.enemyName}
+          enemyMaxHp={hudStatic.enemyMaxHp}
+          enemyLevel={hudStatic.enemyLevel}
+          buffs={hudStatic.buffs}
+          activeAbilities={activeAbilities}
+          cooldownRefs={cooldownRefs}
+          playerHpBarRef={playerHpBarRef}
+          playerHpTextRef={playerHpTextRef}
+          enemyHpBarRef={enemyHpBarRef}
+          enemyContainerRef={enemyContainerRef}
+          onMoveLeft={(pressed) => setKey('ArrowLeft', pressed)}
+          onMoveRight={(pressed) => setKey('ArrowRight', pressed)}
+          onAttack={handleManualAttack}
+          onAbility={handleAbilityUse}
+        />
+
+        {/* === OVERLAY: pause === */}
+        {isPaused && !battleSummary?.show && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40">
+            <div className="bg-medieval-800 border-4 border-medieval-500 rounded-lg shadow-2xl text-center p-8" style={{ width: 'min(90%, 360px)' }}>
+              <h2 className="font-serif mb-6 text-medieval-200 text-3xl">Paused</h2>
+              <div className="flex flex-col gap-3">
+                <button onClick={togglePause} className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded flex items-center justify-center gap-2 border border-emerald-600 active:scale-95 transition-transform">
+                  <Play size={18} fill="currentColor" /> Resume
+                </button>
+                <button onClick={handleQuitToMap} className="w-full py-3 bg-red-900 hover:bg-red-800 text-white font-bold rounded flex items-center justify-center gap-2 border border-red-700 active:scale-95 transition-transform">
+                  <LogOut size={18} /> Quit to Map
+                </button>
+              </div>
+              <p className="mt-4 text-medieval-500 text-xs">Quitting counts as fleeing (XP penalty if no Bravery).</p>
+            </div>
+          </div>
+        )}
+
+        <BattleSummary
+          summary={battleSummary}
+          onRest={handleRest}
+          onContinue={handleContinueJourney}
+          restHealAmount={Math.floor(calculateTotalStats(characterRef.current)[Attribute.HT] * 1.2)}
+        />
+      </div>
     </div>
   );
 };

@@ -42,8 +42,7 @@ const BottomControls: React.FC<Props> = ({
 }) => {
     return (
         <div className="absolute bottom-0 left-0 right-0 z-30 safe-bottom safe-left safe-right pointer-events-none">
-            <div className="flex items-end gap-2 px-2 py-2 pointer-events-auto"
-                 style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)' }}>
+            <div className="flex items-end gap-2 px-2 py-2 pointer-events-auto bg-medieval-900/80">
                 {/* === Joystick (left) === */}
                 <div className="shrink-0">
                     <VirtualStick
